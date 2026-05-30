@@ -51,6 +51,25 @@ router.put('/champion', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// Bootstrap: nadaj prawa admina + reseed – chroniony BOOTSTRAP_KEY z env
+router.post('/bootstrap', async (req, res) => {
+  const { key, username } = req.body;
+  if (!process.env.BOOTSTRAP_KEY || key !== process.env.BOOTSTRAP_KEY) {
+    return res.status(403).json({ error: 'Nieprawidłowy klucz' });
+  }
+  const user = await db('users').where({ username }).first();
+  if (!user) return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+  await db('users').where({ id: user.id }).update({ is_admin: 1 });
+
+  const seedFn = require('../scripts/seedInline');
+  await db('predictions').delete();
+  await db('champion_predictions').delete();
+  await db('matches').delete();
+  await seedFn(db);
+  const count = await db('matches').count('id as c').first();
+  res.json({ success: true, admin: username, matches: count.c });
+});
+
 // Force reseed
 router.post('/reseed', adminAuth, async (req, res) => {
   const seedFn = require('../scripts/seedInline');
