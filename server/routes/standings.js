@@ -1,8 +1,8 @@
 const router = require('express').Router();
 const { db } = require('../db/database');
-const { auth } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 
-router.get('/', auth, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const rows = await db('users as u')
     .where('u.is_admin', 0)
     .leftJoin('predictions as p', function () {

@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const POINTS_COLORS = {
   5: 'bg-purple-500 text-white',
@@ -21,11 +23,25 @@ function isLocked(dateStr, timeStr) {
   return Date.now() >= dt.getTime() - 5 * 60 * 1000;
 }
 
+// Kolor obramowania karty na podstawie zdobytych punktów
+const CARD_COLORS = {
+  5: 'border-green-500/60 bg-green-500/5',
+  3: 'border-green-500/60 bg-green-500/5',
+  2: 'border-blue-500/60 bg-blue-500/5',
+  1: 'border-yellow-500/60 bg-yellow-500/5',
+  0: 'border-red-500/60 bg-red-500/5',
+};
+
 export default function MatchCard({ match, onUpdate }) {
+  const { user } = useAuth();
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
+
+  const cardColor = finished && match.pred_points !== null && match.pred_points !== undefined
+    ? CARD_COLORS[match.pred_points] ?? ''
+    : '';
 
   const [home, setHome] = useState(
     match.pred_home !== null && match.pred_home !== undefined ? String(match.pred_home) : ''
@@ -60,7 +76,7 @@ export default function MatchCard({ match, onUpdate }) {
   };
 
   return (
-    <div className={`card transition-all ${locked && !finished ? 'opacity-70' : ''}`}>
+    <div className={`card transition-all ${cardColor} ${locked && !finished ? 'opacity-70' : ''}`}>
       {/* Round label */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-white/40 font-medium">
@@ -116,7 +132,15 @@ export default function MatchCard({ match, onUpdate }) {
       {/* Prediction area – show for all non-group matches (even TBD), and for group matches with known teams */}
       {(!isTBD || isKnockout) && (
         <div className="mt-4 pt-3 border-t border-white/10">
-          {finished ? (
+          {/* Niezalogowany – zachęta do logowania */}
+          {!user ? (
+            <div className="text-center">
+              <Link to="/login" className="text-sm text-wc-gold hover:underline font-semibold">
+                Zaloguj się
+              </Link>
+              <span className="text-sm text-white/30"> aby typować</span>
+            </div>
+          ) : finished ? (
             <div className="flex items-center justify-center gap-3">
               <span className="text-sm text-white/50">Twój typ:</span>
               {match.pred_points !== null && match.pred_points !== undefined ? (

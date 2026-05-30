@@ -12,6 +12,16 @@ function auth(req, res, next) {
   }
 }
 
+// Opcjonalne auth – jeśli token jest, dekoduje; jeśli nie ma, przepuszcza dalej
+function optionalAuth(req, _res, next) {
+  const header = req.headers.authorization;
+  if (header) {
+    const token = header.split(' ')[1];
+    try { req.user = jwt.verify(token, process.env.JWT_SECRET); } catch {}
+  }
+  next();
+}
+
 function adminAuth(req, res, next) {
   auth(req, res, () => {
     if (!req.user.is_admin) return res.status(403).json({ error: 'Brak uprawnień administratora' });
@@ -19,4 +29,4 @@ function adminAuth(req, res, next) {
   });
 }
 
-module.exports = { auth, adminAuth };
+module.exports = { auth, optionalAuth, adminAuth };

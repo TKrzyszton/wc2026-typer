@@ -62,16 +62,31 @@ export default function Layout() {
             )}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-white/60 hidden sm:block">
-              👤 <span className="text-white font-semibold">{user?.username}</span>
-            </span>
-            <button
-              onClick={logout}
-              className="text-sm text-white/50 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10"
-            >
-              Wyloguj
-            </button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <span className="text-sm text-white/60 hidden sm:block">
+                  👤 <span className="text-white font-semibold">{user.username}</span>
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-sm text-white/50 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10"
+                >
+                  Wyloguj
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login"
+                  className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+                  Zaloguj
+                </Link>
+                <Link to="/register"
+                  className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-wc-gold text-wc-dark hover:brightness-110 transition-all">
+                  Rejestracja
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

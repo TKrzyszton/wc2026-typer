@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import MatchCard from '../components/MatchCard';
 
 const TEAMS_48 = [
@@ -25,14 +26,17 @@ function ChampionWidget() {
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState('');
 
+  const { user } = useAuth();
+
   useEffect(() => {
+    if (!user) return;
     api.get('/predictions/champion').then(r => {
       if (r.data) {
         setPred(r.data);
         setTeam(r.data.team);
       }
     }).catch(() => {});
-  }, []);
+  }, [user]);
 
   const save = async () => {
     if (!team) return;
@@ -102,6 +106,7 @@ function ChampionWidget() {
 }
 
 export default function BettingPage() {
+  const { user } = useAuth();
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeRound, setActiveRound] = useState('Faza grupowa');
@@ -142,7 +147,7 @@ export default function BettingPage() {
 
   return (
     <div>
-      <ChampionWidget />
+      {user && <ChampionWidget />}
 
       {/* Round selector */}
       <div className="flex gap-2 flex-wrap mb-6">

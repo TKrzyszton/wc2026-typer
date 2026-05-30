@@ -1,11 +1,12 @@
 const router = require('express').Router();
 const { db } = require('../db/database');
-const { auth } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 
-router.get('/', auth, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
+  const userId = req.user?.id ?? -1;
   const matches = await db('matches as m')
     .leftJoin('predictions as p', function () {
-      this.on('p.match_id', '=', 'm.id').andOn('p.user_id', '=', db.raw('?', [req.user.id]));
+      this.on('p.match_id', '=', 'm.id').andOn('p.user_id', '=', db.raw('?', [userId]));
     })
     .select(
       'm.*',
@@ -24,7 +25,7 @@ router.get('/', auth, async (req, res) => {
   res.json(grouped);
 });
 
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   const match = await db('matches').where({ id: req.params.id }).first();
   if (!match) return res.status(404).json({ error: 'Mecz nie znaleziony' });
   res.json(match);
