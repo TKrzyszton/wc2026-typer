@@ -51,11 +51,12 @@ router.put('/champion', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-// Bootstrap: nadaj prawa admina + reseed – chroniony BOOTSTRAP_KEY z env
+// Bootstrap: działa tylko gdy nie ma jeszcze żadnego admina
 router.post('/bootstrap', async (req, res) => {
-  const { key, username } = req.body;
-  if (!process.env.BOOTSTRAP_KEY || key !== process.env.BOOTSTRAP_KEY) {
-    return res.status(403).json({ error: 'Nieprawidłowy klucz' });
+  const { username } = req.body;
+  const existingAdmin = await db('users').where({ is_admin: 1 }).first();
+  if (existingAdmin) {
+    return res.status(403).json({ error: 'Bootstrap już wykonany' });
   }
   const user = await db('users').where({ username }).first();
   if (!user) return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
