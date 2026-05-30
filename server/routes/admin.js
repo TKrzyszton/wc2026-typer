@@ -51,6 +51,17 @@ router.put('/champion', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// Force reseed
+router.post('/reseed', adminAuth, async (req, res) => {
+  const seedFn = require('../scripts/seedInline');
+  await db('predictions').delete();
+  await db('champion_predictions').delete();
+  await db('matches').delete();
+  await seedFn(db);
+  const count = await db('matches').count('id as c').first();
+  res.json({ success: true, matches: count.c });
+});
+
 router.get('/users', adminAuth, async (req, res) => {
   const users = await db('users').select('id', 'username', 'is_admin', 'created_at');
   res.json(users);
