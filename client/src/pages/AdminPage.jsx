@@ -120,8 +120,6 @@ export default function AdminPage() {
   const [filter, setFilter] = useState('all');
   const [champMsg, setChampMsg] = useState('');
   const [users, setUsers] = useState([]);
-  const [resetingId, setResetingId] = useState(null);
-  const [resetPass, setResetPass] = useState('');
   const [resetMsg, setResetMsg] = useState({});
 
   const loadMatches = () => {
@@ -149,17 +147,10 @@ export default function AdminPage() {
     setUsers(users.map(u => u.id === userId ? { ...u, is_admin: current ? 0 : 1 } : u));
   };
 
-  const startReset = (userId) => {
-    setResetingId(userId);
-    setResetPass('');
-    setResetMsg({});
-  };
-
-  const savePassword = async (userId) => {
+  const resetPassword = async (userId) => {
     try {
-      await api.put(`/admin/users/${userId}/password`, { password: resetPass });
-      setResetMsg({ [userId]: '✓ Hasło zmienione' });
-      setResetingId(null);
+      await api.put(`/admin/users/${userId}/reset-password`);
+      setResetMsg({ [userId]: '✓ Użytkownik zostanie poproszony o nowe hasło' });
     } catch (e) {
       setResetMsg({ [userId]: e.response?.data?.error || 'Błąd' });
     }
@@ -242,44 +233,17 @@ export default function AdminPage() {
                   </button>
                 </td>
                 <td className="py-2 px-2 text-center">
-                  {resetingId === u.id ? (
-                    <div className="flex gap-1 items-center justify-center">
-                      <input
-                        type="password"
-                        className="input text-xs py-0.5 px-2 w-28"
-                        placeholder="nowe hasło"
-                        value={resetPass}
-                        onChange={e => setResetPass(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && savePassword(u.id)}
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => savePassword(u.id)}
-                        disabled={resetPass.length < 6}
-                        className="text-xs px-2 py-0.5 rounded font-bold bg-green-700 text-white disabled:opacity-40"
-                      >
-                        OK
-                      </button>
-                      <button
-                        onClick={() => setResetingId(null)}
-                        className="text-xs px-2 py-0.5 rounded font-bold bg-white/10 text-white/40"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <button
-                        onClick={() => startReset(u.id)}
-                        className="text-xs px-2 py-0.5 rounded font-bold bg-blue-700/60 text-blue-200 hover:bg-blue-600"
-                      >
-                        Resetuj
-                      </button>
-                      {resetMsg[u.id] && (
-                        <span className="text-xs text-green-400">{resetMsg[u.id]}</span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <button
+                      onClick={() => resetPassword(u.id)}
+                      className="text-xs px-2 py-0.5 rounded font-bold bg-blue-700/60 text-blue-200 hover:bg-blue-600"
+                    >
+                      Resetuj
+                    </button>
+                    {resetMsg[u.id] && (
+                      <span className="text-xs text-green-400">{resetMsg[u.id]}</span>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -26,12 +26,36 @@ router.post('/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return res.status(401).json({ error: 'Nieprawidłowy login lub hasło' });
   }
+  const mustChangePassword = !!user.password_reset_required;
   const token = jwt.sign(
-    { id: user.id, username: user.username, is_admin: user.is_admin },
+    { id: user.id, username: user.username, is_admin: user.is_admin, mustChangePassword },
+    process.env.JWT_SECRET,
+    { expiresIn: mustChangePassword ? '1h' : '7d' }
+  );
+  res.json({ token, username: user.username, is_admin: !!user.is_admin, mustChangePassword });
+});
+
+router.post('/change-password', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'Brak tokenu' });
+  let payload;
+  try {
+    payload = jwt.verify(authHeader.replace('Bearer ', ''), process.env.JWT_SECRET);
+  } catch {
+    return res.status(401).json({ error: 'Nieprawidłowy token' });
+  }
+  const { password } = req.body;
+  if (!password || password.length < 6) return res.status(400).json({ error: 'Hasło musi mieć min. 6 znaków' });
+
+  const hash = await bcrypt.hash(password, 10);
+  await db('users').where({ id: payload.id }).update({ password_hash: hash, password_reset_required: 0 });
+
+  const token = jwt.sign(
+    { id: payload.id, username: payload.username, is_admin: payload.is_admin, mustChangePassword: false },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
-  res.json({ token, username: user.username, is_admin: !!user.is_admin });
+  res.json({ token, username: payload.username, is_admin: !!payload.is_admin, mustChangePassword: false });
 });
 
 module.exports = router;

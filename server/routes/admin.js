@@ -92,12 +92,8 @@ router.put('/users/:id/admin', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-router.put('/users/:id/password', adminAuth, async (req, res) => {
-  const { password } = req.body;
-  if (!password || password.length < 6) return res.status(400).json({ error: 'Hasło musi mieć min. 6 znaków' });
-  const bcrypt = require('bcryptjs');
-  const hash = await bcrypt.hash(password, 10);
-  await db('users').where({ id: req.params.id }).update({ password_hash: hash });
+router.put('/users/:id/reset-password', adminAuth, async (req, res) => {
+  await db('users').where({ id: req.params.id }).update({ password_reset_required: 1 });
   res.json({ success: true });
 });
 

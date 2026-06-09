@@ -28,8 +28,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback(async (newPassword) => {
+    const { data } = await api.post('/auth/change-password', { password: newPassword });
+    localStorage.setItem('wc2026_user', JSON.stringify(data));
+    setUser(data);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

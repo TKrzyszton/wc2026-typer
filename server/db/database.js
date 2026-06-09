@@ -24,8 +24,14 @@ async function initSchema() {
       t.string('username').notNullable().unique();
       t.string('password_hash').notNullable();
       t.integer('is_admin').defaultTo(0);
+      t.integer('password_reset_required').defaultTo(0);
       t.timestamp('created_at').defaultTo(db.fn.now());
     });
+  } else {
+    const hasResetCol = await db.schema.hasColumn('users', 'password_reset_required');
+    if (!hasResetCol) {
+      await db.schema.table('users', t => t.integer('password_reset_required').defaultTo(0));
+    }
   }
 
   const hasMatches = await db.schema.hasTable('matches');

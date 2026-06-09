@@ -7,6 +7,7 @@ import BettingPage from './pages/BettingPage';
 import StandingsPage from './pages/StandingsPage';
 import AdminPage from './pages/AdminPage';
 import RulesPage from './pages/RulesPage';
+import SetPasswordPage from './pages/SetPasswordPage';
 
 function AdminRoute({ children }) {
   const { user } = useAuth();
@@ -16,11 +17,18 @@ function AdminRoute({ children }) {
 export default function App() {
   const { user } = useAuth();
 
+  if (user?.mustChangePassword) {
+    return (
+      <Routes>
+        <Route path="*" element={<SetPasswordPage />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/login"    element={user ? <Navigate to="/" /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
-      {/* Publiczne – dostępne bez logowania */}
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/typowanie" replace />} />
         <Route path="typowanie" element={<BettingPage />} />
