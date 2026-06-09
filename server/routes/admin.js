@@ -92,6 +92,15 @@ router.put('/users/:id/admin', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.put('/users/:id/password', adminAuth, async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 6) return res.status(400).json({ error: 'Hasło musi mieć min. 6 znaków' });
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash(password, 10);
+  await db('users').where({ id: req.params.id }).update({ password_hash: hash });
+  res.json({ success: true });
+});
+
 router.get('/matches/:id/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('users as u', 'u.id', 'p.user_id')
