@@ -15,6 +15,7 @@ router.get('/', optionalAuth, async (req, res) => {
       db.raw('COALESCE(SUM(p.points), 0) as match_points'),
       db.raw('COALESCE(cp.points, 0) as champion_points'),
       db.raw('COALESCE(SUM(p.points), 0) + COALESCE(cp.points, 0) as total_points'),
+      db.raw('COUNT(CASE WHEN p.points IS NOT NULL THEN 1 END) as played_count'),
       db.raw('COUNT(CASE WHEN p.points = 3 THEN 1 END) as exact_3'),
       db.raw('COUNT(CASE WHEN p.points = 2 THEN 1 END) as exact_2'),
       db.raw('COUNT(CASE WHEN p.points = 1 THEN 1 END) as exact_1')

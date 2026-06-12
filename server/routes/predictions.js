@@ -61,6 +61,20 @@ router.post('/match/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/match/:id/all', auth, async (req, res) => {
+  const match = await db('matches').where({ id: req.params.id }).first();
+  if (!match) return res.status(404).json({ error: 'Mecz nie znaleziony' });
+  if (!isLocked(match.match_date, match.match_time)) {
+    return res.status(403).json({ error: 'Typy widoczne dopiero po zablokowaniu meczu' });
+  }
+  const preds = await db('predictions as p')
+    .join('users as u', 'u.id', 'p.user_id')
+    .where('p.match_id', req.params.id)
+    .select('u.username', 'p.home_score', 'p.away_score', 'p.predict_penalties', 'p.points')
+    .orderBy('u.username');
+  res.json(preds);
+});
+
 router.get('/champion', auth, async (req, res) => {
   const pred = await db('champion_predictions').where({ user_id: req.user.id }).first();
   res.json(pred || null);

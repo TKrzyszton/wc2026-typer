@@ -3,6 +3,22 @@ const { db } = require('../db/database');
 const { adminAuth } = require('../middleware/auth');
 const { calculatePoints } = require('../db/scoring');
 
+router.put('/matches/:id/reset', adminAuth, async (req, res) => {
+  const matchId = req.params.id;
+  const match = await db('matches').where({ id: matchId }).first();
+  if (!match) return res.status(404).json({ error: 'Mecz nie znaleziony' });
+
+  await db('matches').where({ id: matchId }).update({
+    home_score: null,
+    away_score: null,
+    ended_with_penalties: 0,
+    status: 'scheduled',
+  });
+  await db('predictions').where({ match_id: matchId }).update({ points: null });
+
+  res.json({ success: true });
+});
+
 router.put('/matches/:id/result', adminAuth, async (req, res) => {
   const { home_score, away_score, ended_with_penalties, status } = req.body;
   const matchId = req.params.id;

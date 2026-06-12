@@ -34,7 +34,7 @@ export default function StandingsPage() {
             <tr className="text-white/40 border-b border-white/10">
               <th className="text-left py-3 px-2 w-8">#</th>
               <th className="text-left py-3 px-2">Gracz</th>
-              <th className="text-center py-3 px-2" title="Punkty za mecze">⚽ Mecze</th>
+              <th className="text-center py-3 px-2" title="Liczba rozliczonych meczów">⚽ Mecze</th>
               <th className="text-center py-3 px-2" title="Punkty za mistrza">🏆 Mistrz</th>
               <th className="text-center py-3 px-2 font-bold text-white/60">Suma</th>
               <th className="text-center py-3 px-2 hidden sm:table-cell" title="Trafione dokładne wyniki">3 pkt</th>
@@ -61,7 +61,7 @@ export default function StandingsPage() {
                       {isMe && <span className="text-xs text-white/30 ml-1">(ty)</span>}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-center text-blue-300">{row.match_points}</td>
+                  <td className="py-3 px-2 text-center text-blue-300">{row.played_count}</td>
                   <td className="py-3 px-2 text-center text-yellow-300">{row.champion_points}</td>
                   <td className="py-3 px-2 text-center">
                     <span className={`font-black text-base ${isMe ? 'text-wc-gold' : 'text-white'}`}>

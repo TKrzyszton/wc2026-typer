@@ -20,6 +20,18 @@ function MatchRow({ match, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
+  const resetResult = async () => {
+    if (!window.confirm('Na pewno zresetować wynik tego meczu? Punkty graczy zostaną wyzerowane.')) return;
+    setSaving(true); setMsg('');
+    try {
+      await api.put(`/admin/matches/${match.id}/reset`);
+      setHomeScore(''); setAwayScore(''); setPen(false);
+      setMsg('✓ Wynik zresetowany');
+      onSaved();
+    } catch (e) { setMsg('Błąd: ' + (e.response?.data?.error || e.message)); }
+    finally { setSaving(false); }
+  };
+
   const saveResult = async () => {
     setSaving(true); setMsg('');
     try {
@@ -55,7 +67,18 @@ function MatchRow({ match, onSaved }) {
       <div className="flex gap-2 flex-wrap items-center mb-2">
         <span className="text-white/40 text-xs">{match.match_date} {match.match_time}</span>
         <span className="badge bg-wc-navy border border-white/10 text-white/60 text-xs">{match.round}</span>
-        {match.status === 'finished' && <span className="badge bg-green-600 text-white text-xs">Zakończony</span>}
+        {match.status === 'finished' && (
+          <>
+            <span className="badge bg-green-600 text-white text-xs">Zakończony</span>
+            <button
+              onClick={resetResult}
+              disabled={saving}
+              className="text-xs px-2 py-0.5 rounded font-bold bg-red-900/60 text-red-300 hover:bg-red-800 ml-auto"
+            >
+              Resetuj wynik
+            </button>
+          </>
+        )}
       </div>
 
       {/* Teams editor (knockout TBD) */}

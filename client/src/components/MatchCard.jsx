@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -53,8 +53,16 @@ export default function MatchCard({ match, onUpdate }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [allPreds, setAllPreds] = useState(null);
 
   const hasPrediction = penalties || (home !== '' && away !== '');
+
+  useEffect(() => {
+    if (!user || !locked) return;
+    api.get(`/predictions/match/${match.id}/all`)
+      .then(r => setAllPreds(r.data))
+      .catch(() => {});
+  }, [locked, match.id, user]);
 
   const save = async () => {
     setError('');
@@ -161,14 +169,33 @@ export default function MatchCard({ match, onUpdate }) {
               )}
             </div>
           ) : locked ? (
-            <div className="flex items-center justify-center gap-3 text-sm">
-              <span className="text-white/50">Twój typ:</span>
-              {penalties ? (
-                <span className="font-bold text-purple-400">🎯 Rzuty karne</span>
-              ) : hasPrediction ? (
-                <span className="font-bold text-wc-gold">{home} : {away}</span>
-              ) : (
-                <span className="text-white/30 italic">brak</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <span className="text-white/50">Twój typ:</span>
+                {penalties ? (
+                  <span className="font-bold text-purple-400">🎯 Rzuty karne</span>
+                ) : hasPrediction ? (
+                  <span className="font-bold text-wc-gold">{home} : {away}</span>
+                ) : (
+                  <span className="text-white/30 italic">brak</span>
+                )}
+              </div>
+              {allPreds && allPreds.length > 0 && (
+                <div className="border-t border-white/10 pt-2">
+                  <p className="text-xs text-white/30 text-center mb-2">Typy graczy</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+                    {allPreds.map(p => (
+                      <div key={p.username} className="flex items-center gap-1.5 text-xs">
+                        <span className="text-white/50">{p.username}:</span>
+                        {p.predict_penalties ? (
+                          <span className="text-purple-400 font-semibold">🎯 k</span>
+                        ) : (
+                          <span className="font-semibold text-white/80">{p.home_score}:{p.away_score}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ) : (
@@ -211,7 +238,7 @@ export default function MatchCard({ match, onUpdate }) {
 
               {error && <p className="text-red-400 text-xs text-center">{error}</p>}
 
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-1.5">
                 <button
                   className="btn-primary text-sm py-1.5 px-6"
                   onClick={save}
@@ -219,6 +246,16 @@ export default function MatchCard({ match, onUpdate }) {
                 >
                   {saving ? '…' : saved ? '✓ Zapisano!' : 'Zapisz typ'}
                 </button>
+                {hasPrediction && (
+                  <span className="text-xs text-white/40">
+                    Twój ostatni zapisany typ:{' '}
+                    {penalties ? (
+                      <span className="text-purple-400 font-semibold">Rzuty karne</span>
+                    ) : (
+                      <span className="text-wc-gold font-semibold">{home}:{away}</span>
+                    )}
+                  </span>
+                )}
               </div>
             </div>
           )}
