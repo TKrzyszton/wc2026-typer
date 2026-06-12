@@ -148,7 +148,7 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
     if (hs === null || as_ === null) continue;
 
     // Sprawdź czy mecz zakończył się rzutami karnymi
-    const pen = m.score.penalties !== null &&
+    const pen = m.score.penalties != null &&
       (m.score.penalties.home !== null || m.score.penalties.away !== null);
 
     const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
