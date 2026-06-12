@@ -86,6 +86,7 @@ const EN_TO_PL = {
   'Cape Verde':              'Republika Zielonego Przylądka',
   'Bosnia and Herzegovina':  'Bośnia i Hercegowina',
   'Bosnia & Herzegovina':    'Bośnia i Hercegowina',
+  'Bosnia-Herzegovina':      'Bośnia i Hercegowina',
 };
 
 const FLAG_BASE = 'https://flagcdn.com/w40';
