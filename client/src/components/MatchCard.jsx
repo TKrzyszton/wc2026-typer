@@ -149,23 +149,47 @@ export default function MatchCard({ match, onUpdate }) {
               <span className="text-sm text-white/30"> aby typować</span>
             </div>
           ) : finished ? (
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-sm text-white/50">Twój typ:</span>
-              {match.pred_points !== null && match.pred_points !== undefined ? (
-                <>
-                  {penalties ? (
-                    <span className="font-bold text-purple-400">Rzuty karne</span>
-                  ) : home !== '' ? (
-                    <span className="font-bold">{home} : {away}</span>
-                  ) : (
-                    <span className="text-white/30">brak</span>
-                  )}
-                  <span className={`badge ${POINTS_COLORS[match.pred_points]}`}>
-                    +{match.pred_points} pkt
-                  </span>
-                </>
-              ) : (
-                <span className="text-white/30 text-sm">brak typu</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-sm text-white/50">Twój typ:</span>
+                {match.pred_points !== null && match.pred_points !== undefined ? (
+                  <>
+                    {penalties ? (
+                      <span className="font-bold text-purple-400">Rzuty karne</span>
+                    ) : home !== '' ? (
+                      <span className="font-bold">{home} : {away}</span>
+                    ) : (
+                      <span className="text-white/30">brak</span>
+                    )}
+                    <span className={`badge ${POINTS_COLORS[match.pred_points]}`}>
+                      +{match.pred_points} pkt
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-white/30 text-sm">brak typu</span>
+                )}
+              </div>
+              {allPreds && allPreds.length > 0 && (
+                <div className="border-t border-white/10 pt-2">
+                  <p className="text-xs text-white/30 text-center mb-2">Typy graczy</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center">
+                    {allPreds.map(p => (
+                      <div key={p.username} className="flex items-center gap-1.5 text-xs">
+                        <span className="text-white/50">{p.username}:</span>
+                        {p.predict_penalties ? (
+                          <span className="text-purple-400 font-semibold">🎯 k</span>
+                        ) : (
+                          <span className={`font-semibold ${p.points !== null && p.points !== undefined ? (POINTS_COLORS[p.points] ? '' : '') : ''}`}>
+                            {p.home_score}:{p.away_score}
+                          </span>
+                        )}
+                        {p.points !== null && p.points !== undefined && (
+                          <span className={`badge text-xs py-0 ${POINTS_COLORS[p.points]}`}>+{p.points}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ) : locked ? (
