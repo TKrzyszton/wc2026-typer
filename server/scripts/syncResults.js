@@ -84,6 +84,7 @@ const EN_TO_PL = {
   "Côte d'Ivoire":           'Wybrzeże Kości Słoniowej',
   'Ivory Coast':             'Wybrzeże Kości Słoniowej',
   'Cape Verde':              'Republika Zielonego Przylądka',
+  'Cape Verde Islands':      'Republika Zielonego Przylądka',
   'Bosnia and Herzegovina':  'Bośnia i Hercegowina',
   'Bosnia & Herzegovina':    'Bośnia i Hercegowina',
   'Bosnia-Herzegovina':      'Bośnia i Hercegowina',
