@@ -75,6 +75,20 @@ router.get('/match/:id/all', auth, async (req, res) => {
   res.json(preds);
 });
 
+router.get('/champion/all', auth, async (req, res) => {
+  const firstMatch = await getFirstMatchStart();
+  if (firstMatch) {
+    const lockTime = new Date(firstMatch.getTime() - LOCK_MINUTES * 60 * 1000);
+    if (new Date() < lockTime) return res.status(403).json({ error: 'Jeszcze nie zablokowane' });
+  }
+  const preds = await db('champion_predictions as cp')
+    .join('users as u', 'u.id', 'cp.user_id')
+    .where('u.is_admin', 0)
+    .select('u.username', 'cp.team', 'cp.points')
+    .orderBy('u.username');
+  res.json(preds);
+});
+
 router.get('/champion', auth, async (req, res) => {
   const pred = await db('champion_predictions').where({ user_id: req.user.id }).first();
   res.json(pred || null);

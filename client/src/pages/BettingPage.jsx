@@ -25,6 +25,7 @@ function ChampionWidget() {
   const [saved, setSaved] = useState(false);
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState('');
+  const [allChampPreds, setAllChampPreds] = useState(null);
 
   const { user } = useAuth();
 
@@ -35,6 +36,9 @@ function ChampionWidget() {
         setPred(r.data);
         setTeam(r.data.team);
       }
+    }).catch(() => {});
+    api.get('/predictions/champion/all').then(r => {
+      setAllChampPreds(r.data);
     }).catch(() => {});
   }, [user]);
 
@@ -71,11 +75,31 @@ function ChampionWidget() {
       </div>
 
       {isLocked ? (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-white/50">Twój typ:</span>
-          <span className="font-bold text-wc-gold text-lg">{pred?.team || '—'}</span>
-          {pred?.points === 0 && pred?.team && (
-            <span className="text-white/30 text-xs ml-2">🔒 zablokowane</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-white/50">Twój typ:</span>
+            <span className="font-bold text-wc-gold text-lg">{pred?.team || '—'}</span>
+            {pred?.points === 5 ? (
+              <span className="badge bg-yellow-400 text-black text-xs ml-1">+5 pkt!</span>
+            ) : pred?.team ? (
+              <span className="text-white/30 text-xs ml-1">🔒 zablokowane</span>
+            ) : null}
+          </div>
+          {allChampPreds && allChampPreds.length > 0 && (
+            <div className="border-t border-white/10 pt-3">
+              <p className="text-xs text-white/30 mb-2">Typy wszystkich graczy</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                {allChampPreds.map(p => (
+                  <div key={p.username} className="flex items-center gap-1.5 text-sm">
+                    <span className="text-white/50 text-xs">{p.username}:</span>
+                    <span className={`font-bold ${p.points === 5 ? 'text-yellow-400' : 'text-white/80'}`}>
+                      {p.team || '—'}
+                    </span>
+                    {p.points === 5 && <span className="text-yellow-400 text-xs">+5</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       ) : (
