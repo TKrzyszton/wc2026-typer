@@ -59,7 +59,7 @@ function ChampionWidget() {
     }
   };
 
-  const isLocked = locked || (pred?.points > 0);
+  const isLocked = locked || (pred?.points > 0) || allChampPreds !== null;
 
   return (
     <div className="card border-wc-gold/30 bg-gradient-to-r from-wc-navy to-wc-dark mb-6">
