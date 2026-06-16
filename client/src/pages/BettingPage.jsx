@@ -160,17 +160,10 @@ export default function BettingPage() {
     return [...new Set(roundMatches.map(m => m.match_date))].sort();
   }, [roundMatches]);
 
-  // Set default date when round or data changes
+  // Reset to "all" when round changes
   useEffect(() => {
-    if (roundDates.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
-    if (roundDates.includes(today)) {
-      setActiveDate(today);
-    } else {
-      const upcoming = roundDates.find(d => d >= today);
-      setActiveDate(upcoming || roundDates[roundDates.length - 1]);
-    }
-  }, [activeRound, roundDates.join(',')]);
+    setActiveDate(null);
+  }, [activeRound]);
 
   // Scroll date carousel to active date button
   useEffect(() => {
@@ -230,11 +223,21 @@ export default function BettingPage() {
       {/* Day carousel */}
       {roundDates.length > 1 && (
         <div ref={dateCarouselRef} className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
+          <button
+            onClick={() => setActiveDate(null)}
+            className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-colors ${
+              activeDate === null
+                ? 'bg-wc-gold text-wc-dark'
+                : 'bg-wc-navy border border-white/10 text-white/60 hover:text-white'
+            }`}
+          >
+            Wszystkie
+          </button>
           {roundDates.map(d => (
             <button
               key={d}
               data-date={d}
-              onClick={() => setActiveDate(d)}
+              onClick={() => setActiveDate(prev => prev === d ? null : d)}
               className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-colors ${
                 activeDate === d
                   ? 'bg-wc-gold text-wc-dark'
@@ -252,10 +255,12 @@ export default function BettingPage() {
         <div className="text-center text-white/30 py-12 text-lg">Brak meczów</div>
       ) : (
         <div>
-          <h2 className="text-wc-gold font-black text-lg mb-3 capitalize flex items-center gap-2">
-            <span className="text-2xl">📅</span>
-            {activeDate ? formatDate(activeDate) : ''}
-          </h2>
+          {activeDate && (
+            <h2 className="text-wc-gold font-black text-lg mb-3 capitalize flex items-center gap-2">
+              <span className="text-2xl">📅</span>
+              {formatDate(activeDate)}
+            </h2>
+          )}
           <div className="space-y-3">
             {displayMatches.map(m => (
               <div key={m.id} id={`match-${m.id}`}>
