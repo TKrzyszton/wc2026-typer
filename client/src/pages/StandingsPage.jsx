@@ -28,18 +28,18 @@ export default function StandingsPage() {
         <span>🏆</span> Tabela wyników
       </h1>
 
-      <div className="card overflow-x-auto">
+      <div className="card p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-white/40 border-b border-white/10">
-              <th className="text-left py-3 px-2 w-8">#</th>
+            <tr className="text-white/40 border-b border-white/10 text-xs">
+              <th className="text-center py-3 px-2 w-8">#</th>
               <th className="text-left py-3 px-2">Gracz</th>
-              <th className="text-center py-3 px-2" title="Liczba rozliczonych meczów">⚽ Mecze</th>
-              <th className="text-center py-3 px-2" title="Punkty za mistrza">🏆 Mistrz</th>
-              <th className="text-center py-3 px-2 font-bold text-white/60">Suma</th>
-              <th className="text-center py-3 px-2 hidden sm:table-cell" title="Trafione dokładne wyniki">3 pkt</th>
-              <th className="text-center py-3 px-2 hidden sm:table-cell" title="Trafiona różnica bramek">2 pkt</th>
-              <th className="text-center py-3 px-2 hidden sm:table-cell" title="Trafiony zwycięzca">1 pkt</th>
+              <th className="text-center py-3 px-1 w-10" title="Liczba rozliczonych meczów">⚽</th>
+              <th className="text-center py-3 px-1 w-10 hidden sm:table-cell" title="Punkty za mistrza">🏆</th>
+              <th className="text-center py-3 px-2 w-14 font-bold text-white/60">Pkt</th>
+              <th className="text-center py-3 px-1 w-10 hidden sm:table-cell" title="Trafione dokładne wyniki">3★</th>
+              <th className="text-center py-3 px-1 w-10 hidden sm:table-cell" title="Trafiona różnica bramek">2★</th>
+              <th className="text-center py-3 px-1 w-10 hidden sm:table-cell" title="Trafiony zwycięzca">1★</th>
             </tr>
           </thead>
           <tbody>
@@ -52,25 +52,25 @@ export default function StandingsPage() {
                     isMe ? 'bg-wc-gold/10' : 'hover:bg-white/5'
                   }`}
                 >
-                  <td className="py-3 px-2 text-center font-bold text-white/50">
+                  <td className="py-3 px-2 text-center font-bold text-white/50 text-base">
                     {MEDALS[i] || i + 1}
                   </td>
                   <td className="py-3 px-2">
                     <span className={`font-bold ${isMe ? 'text-wc-gold' : ''}`}>
                       {row.username}
-                      {isMe && <span className="text-xs text-white/30 ml-1">(ty)</span>}
                     </span>
+                    {isMe && <span className="text-xs text-white/30 ml-1">(ty)</span>}
                   </td>
-                  <td className="py-3 px-2 text-center text-blue-300">{row.played_count}</td>
-                  <td className="py-3 px-2 text-center text-yellow-300">{row.champion_points}</td>
+                  <td className="py-3 px-1 text-center text-blue-300">{row.played_count}</td>
+                  <td className="py-3 px-1 text-center text-yellow-300 hidden sm:table-cell">{row.champion_points}</td>
                   <td className="py-3 px-2 text-center">
                     <span className={`font-black text-base ${isMe ? 'text-wc-gold' : 'text-white'}`}>
                       {row.total_points}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-center text-green-400 hidden sm:table-cell">{row.exact_3}</td>
-                  <td className="py-3 px-2 text-center text-blue-400 hidden sm:table-cell">{row.exact_2}</td>
-                  <td className="py-3 px-2 text-center text-yellow-400 hidden sm:table-cell">{row.exact_1}</td>
+                  <td className="py-3 px-1 text-center text-green-400 hidden sm:table-cell">{row.exact_3}</td>
+                  <td className="py-3 px-1 text-center text-blue-400 hidden sm:table-cell">{row.exact_2}</td>
+                  <td className="py-3 px-1 text-center text-yellow-400 hidden sm:table-cell">{row.exact_1}</td>
                 </tr>
               );
             })}

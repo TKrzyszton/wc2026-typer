@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 @layer base {
-  body {
+  html, body {
     @apply bg-wc-dark text-white min-h-screen;
     font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow-x: hidden;
   }
 }
 
