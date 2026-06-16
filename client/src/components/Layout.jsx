@@ -14,7 +14,7 @@ export default function Layout() {
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       {/* Header */}
       <header className="bg-wc-navy border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
