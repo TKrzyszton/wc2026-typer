@@ -19,6 +19,16 @@ export default function Layout() {
 
           <nav className="flex items-center gap-1">
             <NavLink
+              to="/dzis"
+              className={({ isActive }) =>
+                `px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                  isActive ? 'bg-orange-500 text-white' : 'text-orange-400 hover:text-orange-300 hover:bg-white/10'
+                }`
+              }
+            >
+              🔥 Dziś
+            </NavLink>
+            <NavLink
               to="/typowanie"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${

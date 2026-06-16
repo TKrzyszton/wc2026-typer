@@ -8,6 +8,7 @@ import StandingsPage from './pages/StandingsPage';
 import AdminPage from './pages/AdminPage';
 import RulesPage from './pages/RulesPage';
 import SetPasswordPage from './pages/SetPasswordPage';
+import TodayPage from './pages/TodayPage';
 
 function AdminRoute({ children }) {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/typowanie" replace />} />
+        <Route path="dzis"      element={<TodayPage />} />
         <Route path="typowanie" element={<BettingPage />} />
         <Route path="tabela"    element={<StandingsPage />} />
         <Route path="zasady"    element={<RulesPage />} />

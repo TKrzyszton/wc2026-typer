@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +54,7 @@ export default function MatchCard({ match, onUpdate }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [allPreds, setAllPreds] = useState(null);
+  const awayRef = useRef(null);
 
   const hasPrediction = penalties || (home !== '' && away !== '');
 
@@ -231,11 +232,15 @@ export default function MatchCard({ match, onUpdate }) {
                     className="score-input"
                     type="number" min="0" max="30"
                     value={home}
-                    onChange={e => setHome(e.target.value)}
+                    onChange={e => {
+                      setHome(e.target.value);
+                      if (e.target.value !== '' && home === '') awayRef.current?.focus();
+                    }}
                     placeholder="–"
                   />
                   <span className="text-white/40 font-bold">:</span>
                   <input
+                    ref={awayRef}
                     className="score-input"
                     type="number" min="0" max="30"
                     value={away}
