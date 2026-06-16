@@ -81,32 +81,32 @@ export default function Layout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-wc-navy border-t border-white/10 flex">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0d1f3c] border-t-2 border-wc-gold/30 flex shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
         {bottomNav.map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-semibold transition-colors ${
-                isActive ? 'text-wc-gold' : 'text-white/40 hover:text-white'
+              `flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs font-semibold transition-colors ${
+                isActive ? 'text-wc-gold' : 'text-white/35 hover:text-white'
               }`
             }
           >
-            <span className="text-xl leading-none">{icon}</span>
-            <span>{label}</span>
+            <span className="text-2xl leading-none">{icon}</span>
+            <span className="tracking-wide">{label}</span>
           </NavLink>
         ))}
         {user?.is_admin && (
           <NavLink
             to="/admin"
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-semibold transition-colors ${
-                isActive ? 'text-red-400' : 'text-white/40 hover:text-white'
+              `flex-1 flex flex-col items-center justify-center py-3 gap-1 text-xs font-semibold transition-colors ${
+                isActive ? 'text-red-400' : 'text-white/35 hover:text-white'
               }`
             }
           >
-            <span className="text-xl leading-none">🔧</span>
-            <span>Admin</span>
+            <span className="text-2xl leading-none">🔧</span>
+            <span className="tracking-wide">Admin</span>
           </NavLink>
         )}
       </nav>
