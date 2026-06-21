@@ -54,6 +54,7 @@ async function start() {
   // Inicjalizacja bazy po bindowaniu portu
   await initSchema();
   await seedIfEmpty();
+  await require('./scripts/migrateFlags');
 
   if (process.env.FOOTBALL_API_KEY) {
     const cron = require('node-cron');

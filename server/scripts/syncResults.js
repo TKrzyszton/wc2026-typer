@@ -90,7 +90,7 @@ const EN_TO_PL = {
   'Bosnia-Herzegovina':      'Bośnia i Hercegowina',
 };
 
-const FLAG_BASE = 'https://flagcdn.com/w40';
+const FLAG_BASE = '/flags';
 const FLAG_MAP = {
   'Meksyk': 'mx', 'USA': 'us', 'Kanada': 'ca', 'Argentyna': 'ar', 'Brazylia': 'br',
   'Kolumbia': 'co', 'Ekwador': 'ec', 'Urugwaj': 'uy', 'Paragwaj': 'py', 'Niemcy': 'de',

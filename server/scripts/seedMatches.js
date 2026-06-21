@@ -1,17 +1,17 @@
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+﻿require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { db, initSchema } = require('../db/database');
 
-const FLAG_BASE = 'https://flagcdn.com/w40';
+const FLAG_BASE = '/flags';
 const FLAG_MAP = {
   'Meksyk': 'mx', 'USA': 'us', 'Kanada': 'ca',
   'Argentyna': 'ar', 'Brazylia': 'br', 'Kolumbia': 'co', 'Ekwador': 'ec',
   'Urugwaj': 'uy', 'Chile': 'cl', 'Peru': 'pe', 'Wenezuela': 've', 'Paragwaj': 'py',
   'Niemcy': 'de', 'Francja': 'fr', 'Hiszpania': 'es', 'Anglia': 'gb-eng',
-  'Portugalia': 'pt', 'Holandia': 'nl', 'Belgia': 'be', 'Włochy': 'it',
+  'Portugalia': 'pt', 'Holandia': 'nl', 'Belgia': 'be', 'WĹ‚ochy': 'it',
   'Szwajcaria': 'ch', 'Chorwacja': 'hr', 'Dania': 'dk', 'Austria': 'at',
-  'Szkocja': 'gb-sct', 'Węgry': 'hu', 'Turcja': 'tr', 'Czechy': 'cz',
-  'Słowacja': 'sk', 'Polska': 'pl', 'Rumunia': 'ro', 'Serbia': 'rs', 'Ukraina': 'ua',
-  'Japonia': 'jp', 'Korea Południowa': 'kr', 'Australia': 'au', 'Iran': 'ir',
+  'Szkocja': 'gb-sct', 'WÄ™gry': 'hu', 'Turcja': 'tr', 'Czechy': 'cz',
+  'SĹ‚owacja': 'sk', 'Polska': 'pl', 'Rumunia': 'ro', 'Serbia': 'rs', 'Ukraina': 'ua',
+  'Japonia': 'jp', 'Korea PoĹ‚udniowa': 'kr', 'Australia': 'au', 'Iran': 'ir',
   'Arabia Saudyjska': 'sa', 'Jordania': 'jo', 'Irak': 'iq', 'Uzbekistan': 'uz',
   'Maroko': 'ma', 'Senegal': 'sn', 'Nigeria': 'ng', 'Kamerun': 'cm',
   'DRK': 'cd', 'Mali': 'ml', 'Egipt': 'eg', 'Ghana': 'gh', 'Tunezja': 'tn',
@@ -104,12 +104,12 @@ const GROUP_MATCHES = [
   { home: 'TBD',  away: 'TBD',           date: '2026-06-24', time: '22:00', group: 'K', venue: 'Chicago' },
   { home: 'TBD',  away: 'TBD',           date: '2026-06-24', time: '22:00', group: 'K', venue: 'Atlanta' },
   // GROUP L
-  { home: 'Korea Południowa', away: 'TBD', date: '2026-06-16', time: '01:00', group: 'L', venue: 'Los Angeles' },
+  { home: 'Korea PoĹ‚udniowa', away: 'TBD', date: '2026-06-16', time: '01:00', group: 'L', venue: 'Los Angeles' },
   { home: 'TBD',  away: 'TBD',           date: '2026-06-16', time: '04:00', group: 'L', venue: 'San Francisco' },
-  { home: 'Korea Południowa', away: 'TBD', date: '2026-06-20', time: '01:00', group: 'L', venue: 'Seattle' },
+  { home: 'Korea PoĹ‚udniowa', away: 'TBD', date: '2026-06-20', time: '01:00', group: 'L', venue: 'Seattle' },
   { home: 'TBD',  away: 'TBD',           date: '2026-06-20', time: '04:00', group: 'L', venue: 'Los Angeles' },
   { home: 'TBD',  away: 'TBD',           date: '2026-06-24', time: '01:00', group: 'L', venue: 'San Francisco' },
-  { home: 'Korea Południowa', away: 'TBD', date: '2026-06-24', time: '01:00', group: 'L', venue: 'Seattle' },
+  { home: 'Korea PoĹ‚udniowa', away: 'TBD', date: '2026-06-24', time: '01:00', group: 'L', venue: 'Seattle' },
 ];
 
 const KNOCKOUT_MATCHES = [
@@ -129,29 +129,29 @@ const KNOCKOUT_MATCHES = [
   { date: '2026-07-04', time: '23:00', round: 'Runda 32', venue: 'Houston' },
   { date: '2026-07-05', time: '20:00', round: 'Runda 32', venue: 'Atlanta' },
   { date: '2026-07-05', time: '23:00', round: 'Runda 32', venue: 'Seattle' },
-  { date: '2026-07-07', time: '20:00', round: '1/8 Finału', venue: 'Dallas' },
-  { date: '2026-07-07', time: '23:00', round: '1/8 Finału', venue: 'Los Angeles' },
-  { date: '2026-07-08', time: '20:00', round: '1/8 Finału', venue: 'Miami' },
-  { date: '2026-07-08', time: '23:00', round: '1/8 Finału', venue: 'New York' },
-  { date: '2026-07-09', time: '20:00', round: '1/8 Finału', venue: 'Houston' },
-  { date: '2026-07-09', time: '23:00', round: '1/8 Finału', venue: 'Atlanta' },
-  { date: '2026-07-10', time: '20:00', round: '1/8 Finału', venue: 'Seattle' },
-  { date: '2026-07-10', time: '23:00', round: '1/8 Finału', venue: 'Kansas City' },
-  { date: '2026-07-13', time: '20:00', round: 'Ćwierćfinał', venue: 'Dallas' },
-  { date: '2026-07-13', time: '23:00', round: 'Ćwierćfinał', venue: 'Los Angeles' },
-  { date: '2026-07-14', time: '20:00', round: 'Ćwierćfinał', venue: 'Miami' },
-  { date: '2026-07-14', time: '23:00', round: 'Ćwierćfinał', venue: 'New York' },
-  { date: '2026-07-17', time: '22:00', round: 'Półfinał', venue: 'Atlanta' },
-  { date: '2026-07-18', time: '22:00', round: 'Półfinał', venue: 'Dallas' },
+  { date: '2026-07-07', time: '20:00', round: '1/8 FinaĹ‚u', venue: 'Dallas' },
+  { date: '2026-07-07', time: '23:00', round: '1/8 FinaĹ‚u', venue: 'Los Angeles' },
+  { date: '2026-07-08', time: '20:00', round: '1/8 FinaĹ‚u', venue: 'Miami' },
+  { date: '2026-07-08', time: '23:00', round: '1/8 FinaĹ‚u', venue: 'New York' },
+  { date: '2026-07-09', time: '20:00', round: '1/8 FinaĹ‚u', venue: 'Houston' },
+  { date: '2026-07-09', time: '23:00', round: '1/8 FinaĹ‚u', venue: 'Atlanta' },
+  { date: '2026-07-10', time: '20:00', round: '1/8 FinaĹ‚u', venue: 'Seattle' },
+  { date: '2026-07-10', time: '23:00', round: '1/8 FinaĹ‚u', venue: 'Kansas City' },
+  { date: '2026-07-13', time: '20:00', round: 'Ä†wierÄ‡finaĹ‚', venue: 'Dallas' },
+  { date: '2026-07-13', time: '23:00', round: 'Ä†wierÄ‡finaĹ‚', venue: 'Los Angeles' },
+  { date: '2026-07-14', time: '20:00', round: 'Ä†wierÄ‡finaĹ‚', venue: 'Miami' },
+  { date: '2026-07-14', time: '23:00', round: 'Ä†wierÄ‡finaĹ‚', venue: 'New York' },
+  { date: '2026-07-17', time: '22:00', round: 'PĂłĹ‚finaĹ‚', venue: 'Atlanta' },
+  { date: '2026-07-18', time: '22:00', round: 'PĂłĹ‚finaĹ‚', venue: 'Dallas' },
   { date: '2026-07-21', time: '21:00', round: 'Mecz o 3. miejsce', venue: 'Miami' },
-  { date: '2026-07-22', time: '21:00', round: 'Finał', venue: 'MetLife Stadium, New York' },
+  { date: '2026-07-22', time: '21:00', round: 'FinaĹ‚', venue: 'MetLife Stadium, New York' },
 ];
 
 async function seed() {
   await initSchema();
   const count = await db('matches').count('id as c').first();
   if (count.c > 0) {
-    console.log('Mecze już załadowane. Usuń data/wc2026.db aby wykonać ponownie.');
+    console.log('Mecze juĹĽ zaĹ‚adowane. UsuĹ„ data/wc2026.db aby wykonaÄ‡ ponownie.');
     await db.destroy();
     return;
   }
@@ -178,7 +178,7 @@ async function seed() {
   }
 
   const total = await db('matches').count('id as c').first();
-  console.log(`✓ Załadowano ${total.c} meczów.`);
+  console.log(`âś“ ZaĹ‚adowano ${total.c} meczĂłw.`);
   await db.destroy();
 }
 
