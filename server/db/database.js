@@ -60,7 +60,13 @@ async function initSchema() {
     await db.schema.table('matches', t => {
       t.integer('live_home');
       t.integer('live_away');
+      t.integer('live_minute');
     });
+  } else {
+    const hasMinuteCol = await db.schema.hasColumn('matches', 'live_minute');
+    if (!hasMinuteCol) {
+      await db.schema.table('matches', t => t.integer('live_minute'));
+    }
   }
 
   const hasPred = await db.schema.hasTable('predictions');

@@ -216,38 +216,45 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
   return updated;
 }
 
-// 3. Aktualizuje wyniki na żywo dla trwających meczów
-async function syncLiveMatches(apiMatches, dbMatches) {
-  const live = apiMatches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
-  let updated = 0;
+// 3. Aktualizuje wyniki na żywo używając api-football (ma prawdziwe live z minutą)
+async function syncLiveMatches(dbMatches) {
+  const LIVE_KEY = process.env.APISPORTS_KEY;
+  if (!LIVE_KEY) return 0;
+
+  const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all&league=1&season=2026', {
+    headers: { 'x-apisports-key': LIVE_KEY },
+  });
+
+  const live = resp.data.response || [];
+
+  const liveIds = new Set();
 
   for (const m of live) {
-    const hs = m.score.fullTime?.home ?? m.score.halfTime?.home;
-    const as_ = m.score.fullTime?.away ?? m.score.halfTime?.away;
-    if (hs === null || hs === undefined) continue;
+    const homeEng = m.teams.home.name;
+    const awayEng = m.teams.away.name;
+    const hs = m.goals.home ?? 0;
+    const as_ = m.goals.away ?? 0;
+    const minute = m.fixture.status.elapsed;
 
-    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    const dbRow = matchDbRow(dbMatches, homeEng, awayEng);
     if (!dbRow || dbRow.status === 'finished') continue;
 
-    if (dbRow.status !== 'in_play' || dbRow.live_home !== hs || dbRow.live_away !== as_) {
+    liveIds.add(dbRow.id);
+
+    if (dbRow.status !== 'in_play' || dbRow.live_home !== hs || dbRow.live_away !== as_ || dbRow.live_minute !== minute) {
       await db('matches').where({ id: dbRow.id }).update({
         status: 'in_play',
         live_home: hs,
         live_away: as_,
+        live_minute: minute,
       });
-      updated++;
     }
   }
 
-  // Wyczyść live dla meczów które przestały być na żywo (ale jeszcze nie są finished)
-  const liveIds = new Set(live.map(m => {
-    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
-    return dbRow?.id;
-  }).filter(Boolean));
-
+  // Wyczyść live dla meczów które przestały być na żywo
   const staleLive = dbMatches.filter(m => m.status === 'in_play' && !liveIds.has(m.id));
   for (const m of staleLive) {
-    await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null });
+    await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null, live_minute: null });
   }
 
   return live.length;
@@ -264,7 +271,7 @@ async function sync() {
       db('matches').select('*'),
     ]);
 
-    const liveCount = await syncLiveMatches(apiMatches, dbMatches);
+    const liveCount = await syncLiveMatches(dbMatches);
     const r1 = await syncFinishedMatches(apiMatches, dbMatches);
     const r2 = await syncKnockoutTeams(apiMatches, dbMatches);
 
