@@ -128,46 +128,50 @@ function matchDbRow(dbMatches, homeEng, awayEng) {
   );
 }
 
-async function fetchAllMatches() {
-  const resp = await axios.get(`${BASE_URL}/competitions/WC/matches`, {
-    headers: { 'X-Auth-Token': API_KEY },
-    params: { season: 2026 },
+async function fetchTodayMatches() {
+  const LIVE_KEY = process.env.APISPORTS_KEY;
+  if (!LIVE_KEY) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const resp = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${today}`, {
+    headers: { 'x-apisports-key': LIVE_KEY },
   });
-  return resp.data.matches || [];
+  // Filtruj tylko MŚ (league.id === 1)
+  return (resp.data.response || []).filter(m => m.league.id === 1);
 }
 
-// 1. Aktualizuje wyniki zakończonych meczów i przelicza punkty
-async function syncFinishedMatches(apiMatches, dbMatches) {
-  const finished = apiMatches.filter(m => m.status === 'FINISHED');
+// 1. Aktualizuje wyniki zakończonych meczów i przelicza punkty (api-football)
+async function syncFinishedMatches(todayMatches, dbMatches) {
+  const finished = todayMatches.filter(m => m.fixture.status.short === 'FT' || m.fixture.status.short === 'AET' || m.fixture.status.short === 'PEN');
   let updated = 0;
 
   for (const m of finished) {
-    // Dla fazy pucharowej używamy wyniku po 120 min (extraTime), dla grupowej po 90 min (fullTime)
-    const isKnockout = m.stage !== 'GROUP_STAGE';
-    const hasExtraTime = m.score.extraTime?.home !== null && m.score.extraTime?.home !== undefined;
-    const hs = (isKnockout && hasExtraTime) ? m.score.extraTime.home : m.score.fullTime.home;
-    const as_ = (isKnockout && hasExtraTime) ? m.score.extraTime.away : m.score.fullTime.away;
-    if (hs === null || as_ === null) continue;
+    const isKnockout = !m.league.round.includes('Group');
+    const hasExtraTime = m.score.extratime?.home != null;
+    const hs = (isKnockout && hasExtraTime) ? m.score.extratime.home : m.score.fulltime.home;
+    const as_ = (isKnockout && hasExtraTime) ? m.score.extratime.away : m.score.fulltime.away;
+    if (hs === null || hs === undefined) continue;
 
-    // Sprawdź czy mecz zakończył się rzutami karnymi
-    const pen = m.score.penalties != null &&
-      (m.score.penalties.home !== null || m.score.penalties.away !== null);
+    const pen = m.score.penalty?.home != null;
 
-    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    const dbRow = matchDbRow(dbMatches, m.teams.home.name, m.teams.away.name);
     if (!dbRow) {
-      console.log(`  [WARN] Nie znaleziono w bazie: ${m.homeTeam.name} vs ${m.awayTeam.name}`);
+      console.log(`  [WARN] Nie znaleziono w bazie: ${m.teams.home.name} vs ${m.teams.away.name}`);
       continue;
     }
-    if (dbRow.status === 'finished') continue; // już zaktualizowany
+
+    // Zawsze aktualizuj jeśli wynik się różni (naprawia błędne dane)
+    if (dbRow.status === 'finished' && dbRow.home_score === hs && dbRow.away_score === as_) continue;
 
     await db('matches').where({ id: dbRow.id }).update({
       home_score: hs,
       away_score: as_,
       ended_with_penalties: pen ? 1 : 0,
       status: 'finished',
+      live_home: null,
+      live_away: null,
+      live_minute: null,
     });
 
-    // Przelicz punkty wszystkich typerów
     const updatedMatch = await db('matches').where({ id: dbRow.id }).first();
     const predictions = await db('predictions').where({ match_id: dbRow.id });
     for (const pred of predictions) {
@@ -175,33 +179,32 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
       await db('predictions').where({ id: pred.id }).update({ points });
     }
 
-    console.log(`  ✓ ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}${pen ? ' (k)' : ''}`);
+    const homePl = toPlName(m.teams.home.name);
+    const awayPl = toPlName(m.teams.away.name);
+    console.log(`  ✓ ${homePl} ${hs}:${as_} ${awayPl}${pen ? ' (k)' : ''}`);
     updated++;
   }
   return updated;
 }
 
-// 2. Uzupełnia drużyny TBD w fazie pucharowej
-async function syncKnockoutTeams(apiMatches, dbMatches) {
-  // Mecze fazy pucharowej z API które mają już znane drużyny (nie są TBD)
-  const knockout = apiMatches.filter(m =>
-    m.stage !== 'GROUP_STAGE' &&
-    m.homeTeam?.name && m.awayTeam?.name &&
-    m.homeTeam.name !== 'TBD' && m.awayTeam.name !== 'TBD'
+// 2. Uzupełnia drużyny TBD w fazie pucharowej (api-football, tylko dzisiejsze mecze)
+async function syncKnockoutTeams(todayMatches, dbMatches) {
+  const knockout = todayMatches.filter(m =>
+    !m.league.round.includes('Group') &&
+    m.teams.home.name && m.teams.away.name &&
+    m.teams.home.name !== 'TBD' && m.teams.away.name !== 'TBD'
   );
 
   let updated = 0;
   for (const m of knockout) {
-    const homePl = toPlName(m.homeTeam.name);
-    const awayPl = toPlName(m.awayTeam.name);
+    const homePl = toPlName(m.teams.home.name);
+    const awayPl = toPlName(m.teams.away.name);
+    const apiDate = m.fixture.date.slice(0, 10);
 
-    // Znajdź TBD mecz po dacie i rundzie
-    const apiDate = m.utcDate.slice(0, 10);
     const dbRow = dbMatches.find(d =>
       d.home_team === 'TBD' && d.away_team === 'TBD' &&
       d.match_date === apiDate && d.status !== 'finished'
     );
-
     if (!dbRow) continue;
 
     await db('matches').where({ id: dbRow.id }).update({
@@ -266,14 +269,14 @@ async function sync() {
   console.log(`[${new Date().toLocaleTimeString('pl-PL')}] Synchronizacja wyników...`);
 
   try {
-    const [apiMatches, dbMatches] = await Promise.all([
-      fetchAllMatches(),
+    const [todayMatches, dbMatches] = await Promise.all([
+      fetchTodayMatches(),
       db('matches').select('*'),
     ]);
 
     const liveCount = await syncLiveMatches(dbMatches);
-    const r1 = await syncFinishedMatches(apiMatches, dbMatches);
-    const r2 = await syncKnockoutTeams(apiMatches, dbMatches);
+    const r1 = await syncFinishedMatches(todayMatches, dbMatches);
+    const r2 = await syncKnockoutTeams(todayMatches, dbMatches);
 
     if (liveCount > 0) console.log(`  🔴 Na żywo: ${liveCount} meczów`);
     if (r1 === 0 && r2 === 0 && liveCount === 0) console.log('  Brak nowych danych.');
