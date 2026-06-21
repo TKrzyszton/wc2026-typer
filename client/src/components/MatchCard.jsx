@@ -38,6 +38,20 @@ export default function MatchCard({ match, onUpdate }) {
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
   const live = match.status === 'in_play';
+
+  const [displayMinute, setDisplayMinute] = useState(match.live_minute);
+  const minuteBase = useRef({ minute: match.live_minute, at: Date.now() });
+
+  useEffect(() => {
+    if (!live || match.live_minute == null) { setDisplayMinute(null); return; }
+    minuteBase.current = { minute: match.live_minute, at: Date.now() };
+    setDisplayMinute(match.live_minute);
+    const t = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - minuteBase.current.at) / 60000);
+      setDisplayMinute(Math.min(minuteBase.current.minute + elapsed, 90));
+    }, 10000);
+    return () => clearInterval(t);
+  }, [live, match.live_minute]);
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
@@ -126,7 +140,7 @@ export default function MatchCard({ match, onUpdate }) {
                 <span className="text-white/40">:</span>
                 <span className="text-red-400">{match.live_away}</span>
               </div>
-              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 {match.live_minute ? `${match.live_minute}'` : 'NA ŻYWO'}</span>
+              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 {displayMinute ? `${displayMinute}'` : 'NA ŻYWO'}</span>
             </>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
