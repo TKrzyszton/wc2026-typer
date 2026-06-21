@@ -57,7 +57,7 @@ export default function MatchCard({ match, onUpdate }) {
 
   const cardColor = finished && match.pred_points !== null && match.pred_points !== undefined
     ? CARD_COLORS[match.pred_points] ?? ''
-    : live ? 'border-red-500/60 bg-red-500/5' : '';
+    : live ? 'border-orange-500/80 bg-orange-500/5' : '';
 
   const [home, setHome] = useState(
     match.pred_home !== null && match.pred_home !== undefined ? String(match.pred_home) : ''
@@ -140,7 +140,9 @@ export default function MatchCard({ match, onUpdate }) {
                 <span className="text-white/40">:</span>
                 <span className="text-red-400">{match.live_away}</span>
               </div>
-              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 {displayMinute ? `${displayMinute}'` : 'NA ŻYWO'}</span>
+              <span className="text-xs text-orange-400 font-bold animate-pulse">
+                🔴 NA ŻYWO {displayMinute ? `${displayMinute}'` : ''}
+              </span>
             </>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
