@@ -65,9 +65,9 @@ async function start() {
     async function scheduledSync() {
       const hasLive = await sync();
       if (hasLive && !fastCron) {
-        // Mecz na żywo – przełącz na co 2 minuty
-        fastCron = cron.schedule('*/2 * * * *', sync);
-        console.log('  ⚡ Tryb live: sync co 2 min');
+        // Mecz na żywo – przełącz na co 5 minut
+        fastCron = cron.schedule('*/5 * * * *', sync);
+        console.log('  ⚡ Tryb live: sync co 5 min');
       } else if (!hasLive && fastCron) {
         // Koniec meczu – wróć do co 5 min
         fastCron.stop();
