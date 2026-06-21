@@ -221,7 +221,7 @@ async function syncLiveMatches(dbMatches) {
   const LIVE_KEY = process.env.APISPORTS_KEY;
   if (!LIVE_KEY) return 0;
 
-  const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all&league=1&season=2026', {
+  const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
     headers: { 'x-apisports-key': LIVE_KEY },
   });
 
