@@ -216,6 +216,43 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
   return updated;
 }
 
+// 3. Aktualizuje wyniki na żywo dla trwających meczów
+async function syncLiveMatches(apiMatches, dbMatches) {
+  const live = apiMatches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+  let updated = 0;
+
+  for (const m of live) {
+    const hs = m.score.fullTime?.home ?? m.score.halfTime?.home;
+    const as_ = m.score.fullTime?.away ?? m.score.halfTime?.away;
+    if (hs === null || hs === undefined) continue;
+
+    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    if (!dbRow || dbRow.status === 'finished') continue;
+
+    if (dbRow.status !== 'in_play' || dbRow.live_home !== hs || dbRow.live_away !== as_) {
+      await db('matches').where({ id: dbRow.id }).update({
+        status: 'in_play',
+        live_home: hs,
+        live_away: as_,
+      });
+      updated++;
+    }
+  }
+
+  // Wyczyść live dla meczów które przestały być na żywo (ale jeszcze nie są finished)
+  const liveIds = new Set(live.map(m => {
+    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    return dbRow?.id;
+  }).filter(Boolean));
+
+  const staleLive = dbMatches.filter(m => m.status === 'in_play' && !liveIds.has(m.id));
+  for (const m of staleLive) {
+    await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null });
+  }
+
+  return live.length;
+}
+
 async function sync() {
   if (!API_KEY) { console.error('Brak FOOTBALL_API_KEY'); return; }
 
@@ -227,13 +264,15 @@ async function sync() {
       db('matches').select('*'),
     ]);
 
-    console.log(`  API: ${apiMatches.length} meczów, baza: ${dbMatches.length} meczów`);
-
+    const liveCount = await syncLiveMatches(apiMatches, dbMatches);
     const r1 = await syncFinishedMatches(apiMatches, dbMatches);
     const r2 = await syncKnockoutTeams(apiMatches, dbMatches);
 
-    if (r1 === 0 && r2 === 0) console.log('  Brak nowych danych.');
-    else console.log(`  Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
+    if (liveCount > 0) console.log(`  🔴 Na żywo: ${liveCount} meczów`);
+    if (r1 === 0 && r2 === 0 && liveCount === 0) console.log('  Brak nowych danych.');
+    else if (r1 > 0 || r2 > 0) console.log(`  Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
+
+    return liveCount > 0;
 
   } catch (e) {
     if (e.response?.status === 429) {
@@ -241,6 +280,7 @@ async function sync() {
     } else {
       console.error('  [ERROR]', e.message);
     }
+    return false;
   }
 }
 

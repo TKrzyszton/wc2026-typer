@@ -55,6 +55,14 @@ async function initSchema() {
     });
   }
 
+  const hasLiveCols = await db.schema.hasColumn('matches', 'live_home');
+  if (!hasLiveCols) {
+    await db.schema.table('matches', t => {
+      t.integer('live_home');
+      t.integer('live_away');
+    });
+  }
+
   const hasPred = await db.schema.hasTable('predictions');
   if (!hasPred) {
     await db.schema.createTable('predictions', t => {

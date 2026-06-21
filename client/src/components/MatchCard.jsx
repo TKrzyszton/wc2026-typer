@@ -36,12 +36,13 @@ export default function MatchCard({ match, onUpdate }) {
   const { user } = useAuth();
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
+  const live = match.status === 'in_play';
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
   const cardColor = finished && match.pred_points !== null && match.pred_points !== undefined
     ? CARD_COLORS[match.pred_points] ?? ''
-    : '';
+    : live ? 'border-red-500/60 bg-red-500/5' : '';
 
   const [home, setHome] = useState(
     match.pred_home !== null && match.pred_home !== undefined ? String(match.pred_home) : ''
@@ -113,16 +114,25 @@ export default function MatchCard({ match, onUpdate }) {
               <span className="text-wc-gold">{match.home_score}</span>
               <span className="text-white/40">:</span>
               <span className="text-wc-gold">{match.away_score}</span>
-              {match.ended_with_penalties ? (
+              {match.ended_with_penalties && (
                 <span className="text-xs text-purple-400 ml-1">(k)</span>
-              ) : null}
+              )}
             </div>
+          ) : live ? (
+            <>
+              <div className="flex items-center gap-1 text-xl font-black">
+                <span className="text-red-400">{match.live_home}</span>
+                <span className="text-white/40">:</span>
+                <span className="text-red-400">{match.live_away}</span>
+              </div>
+              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 NA ŻYWO</span>
+            </>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
               {formatTime(match.match_date, match.match_time)}
             </div>
           )}
-          {locked && !finished && (
+          {locked && !finished && !live && (
             <span className="text-xs text-red-400 font-semibold">🔒 Zablokowane</span>
           )}
         </div>

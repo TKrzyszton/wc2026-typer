@@ -59,9 +59,26 @@ async function start() {
   if (process.env.FOOTBALL_API_KEY) {
     const cron = require('node-cron');
     const { sync } = require('./scripts/syncResults');
+
+    let fastCron = null;
+
+    async function scheduledSync() {
+      const hasLive = await sync();
+      if (hasLive && !fastCron) {
+        // Mecz na żywo – przełącz na co 1 minutę
+        fastCron = cron.schedule('* * * * *', sync);
+        console.log('  ⚡ Tryb live: sync co 1 min');
+      } else if (!hasLive && fastCron) {
+        // Koniec meczu – wróć do co 5 min
+        fastCron.stop();
+        fastCron = null;
+        console.log('  Powrót do syncu co 5 min');
+      }
+    }
+
     sync();
-    cron.schedule('*/5 * * * *', sync);
-    console.log('Auto-sync wyników aktywny (co 5 min)');
+    cron.schedule('*/5 * * * *', scheduledSync);
+    console.log('Auto-sync wyników aktywny (co 5 min, co 1 min gdy mecz na żywo)');
   } else {
     console.log('Brak FOOTBALL_API_KEY – wyniki wpisuj ręcznie w panelu Admin.');
   }
