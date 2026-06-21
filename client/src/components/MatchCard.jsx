@@ -123,7 +123,7 @@ export default function MatchCard({ match, onUpdate }) {
               <span className="text-wc-gold">{match.home_score}</span>
               <span className="text-white/40">:</span>
               <span className="text-wc-gold">{match.away_score}</span>
-              {match.ended_with_penalties && (
+              {!!match.ended_with_penalties && (
                 <span className="text-xs text-purple-400 ml-1">(k)</span>
               )}
             </div>
