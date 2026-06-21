@@ -23,6 +23,15 @@ function isLocked(dateStr, timeStr) {
   return Date.now() >= dt.getTime() - 5 * 60 * 1000;
 }
 
+function liveMinute(dateStr, timeStr) {
+  const kickoff = new Date(`${dateStr}T${timeStr}:00+02:00`);
+  const elapsed = Math.floor((Date.now() - kickoff.getTime()) / 60000);
+  if (elapsed <= 45) return `${elapsed}'`;
+  if (elapsed <= 60) return '45+'; // przerwa
+  if (elapsed <= 105) return `${elapsed - 15}'`; // 2. połowa (odejmujemy 15 min przerwy)
+  return '90+';
+}
+
 // Kolor obramowania karty na podstawie zdobytych punktów
 const CARD_COLORS = {
   5: 'border-green-500/60 bg-green-500/5',
@@ -125,7 +134,7 @@ export default function MatchCard({ match, onUpdate }) {
                 <span className="text-white/40">:</span>
                 <span className="text-red-400">{match.live_away}</span>
               </div>
-              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 NA ŻYWO</span>
+              <span className="text-xs text-red-400 font-bold animate-pulse">🔴 {liveMinute(match.match_date, match.match_time)}</span>
             </>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
