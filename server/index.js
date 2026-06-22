@@ -61,8 +61,8 @@ async function start() {
     const { sync } = require('./scripts/syncResults');
 
     sync();
-    cron.schedule('*/5 * * * *', sync);
-    console.log('Auto-sync wyników aktywny (co 5 min)');
+    cron.schedule('* * * * *', sync);
+    console.log('Auto-sync wyników aktywny (co 1 min)');
   } else {
     console.log('Brak FOOTBALL_API_KEY – wyniki wpisuj ręcznie w panelu Admin.');
   }

@@ -39,7 +39,7 @@ export default function MatchCard({ match, onUpdate }) {
   const { user } = useAuth();
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
-  const live = !finished && isInPlay(match.match_date, match.match_time);
+  const live = match.status === 'in_play' || (!finished && isInPlay(match.match_date, match.match_time));
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
@@ -120,6 +120,12 @@ export default function MatchCard({ match, onUpdate }) {
               {!!match.ended_with_penalties && (
                 <span className="text-xs text-purple-400 ml-1">(k)</span>
               )}
+            </div>
+          ) : live ? (
+            <div className="flex items-center gap-1 text-xl font-black">
+              <span className="text-orange-400">{match.status === 'in_play' ? match.live_home : '?'}</span>
+              <span className="text-white/40">:</span>
+              <span className="text-orange-400">{match.status === 'in_play' ? match.live_away : '?'}</span>
             </div>
           ) : (
             <div className="text-wc-gold font-bold text-lg">

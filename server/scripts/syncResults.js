@@ -141,9 +141,42 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
   return updated;
 }
 
+async function syncLiveMatches(apiMatches, dbMatches) {
+  const live = apiMatches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+  const liveIds = new Set();
+  let updated = 0;
+
+  for (const m of live) {
+    const hs = m.score.fullTime.home;
+    const as_ = m.score.fullTime.away;
+    if (hs === null || as_ === null) continue;
+
+    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    if (!dbRow || dbRow.status === 'finished') continue;
+
+    liveIds.add(dbRow.id);
+
+    if (dbRow.status !== 'in_play' || dbRow.live_home !== hs || dbRow.live_away !== as_) {
+      await db('matches').where({ id: dbRow.id }).update({
+        status: 'in_play', live_home: hs, live_away: as_,
+      });
+      updated++;
+    }
+  }
+
+  // Mecze które zniknęły z live → reset do scheduled (finished sync je zaraz złapie)
+  const stale = dbMatches.filter(m => m.status === 'in_play' && !liveIds.has(m.id));
+  for (const m of stale) {
+    await db('matches').where({ id: m.id }).update({
+      status: 'scheduled', live_home: null, live_away: null,
+    });
+  }
+
+  return live.length;
+}
+
 async function sync() {
   if (!API_KEY) { console.error('Brak FOOTBALL_API_KEY'); return; }
-  console.log(`[${new Date().toLocaleTimeString('pl-PL')}] Synchronizacja wyników...`);
 
   try {
     const [apiMatches, dbMatches] = await Promise.all([
@@ -151,15 +184,17 @@ async function sync() {
       db('matches').select('*'),
     ]);
 
+    const liveCount = await syncLiveMatches(apiMatches, dbMatches);
     const r1 = await syncFinishedMatches(apiMatches, dbMatches);
     const r2 = await syncKnockoutTeams(apiMatches, dbMatches);
 
-    if (r1 === 0 && r2 === 0) console.log('  Brak nowych danych.');
-    else console.log(`  Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
+    const time = new Date().toLocaleTimeString('pl-PL');
+    if (liveCount > 0) console.log(`[${time}] 🔴 Na żywo: ${liveCount} meczów, wyniki: ${r1} zaktualizowanych`);
+    else if (r1 > 0 || r2 > 0) console.log(`[${time}] Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
 
   } catch (e) {
     if (e.response?.status === 429) {
-      console.error('  [WARN] Rate limit API (429) – poczekaj chwilę.');
+      console.error('  [WARN] Rate limit API (429)');
     } else {
       console.error('  [ERROR]', e.message);
     }
