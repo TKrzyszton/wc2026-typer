@@ -21,6 +21,12 @@ function isLocked(dateStr, timeStr) {
   return Date.now() >= dt.getTime() - 5 * 60 * 1000;
 }
 
+function isInPlay(dateStr, timeStr) {
+  const start = new Date(`${dateStr}T${timeStr}:00+02:00`).getTime();
+  const now = Date.now();
+  return now >= start && now <= start + 110 * 60 * 1000;
+}
+
 const CARD_COLORS = {
   5: 'border-green-500/60 bg-green-500/5',
   3: 'border-green-500/60 bg-green-500/5',
@@ -33,12 +39,13 @@ export default function MatchCard({ match, onUpdate }) {
   const { user } = useAuth();
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
+  const live = !finished && isInPlay(match.match_date, match.match_time);
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
   const cardColor = finished && match.pred_points !== null && match.pred_points !== undefined
     ? CARD_COLORS[match.pred_points] ?? ''
-    : '';
+    : live ? 'border-orange-400/70 bg-orange-500/5' : '';
 
   const [home, setHome] = useState(
     match.pred_home !== null && match.pred_home !== undefined ? String(match.pred_home) : ''
@@ -119,7 +126,10 @@ export default function MatchCard({ match, onUpdate }) {
               {formatTime(match.match_date, match.match_time)}
             </div>
           )}
-          {locked && !finished && (
+          {live && (
+            <span className="text-xs text-orange-400 font-bold animate-pulse mt-0.5">⚽ MECZ TRWA</span>
+          )}
+          {locked && !finished && !live && (
             <span className="text-xs text-red-400 font-semibold">🔒 Zablokowane</span>
           )}
         </div>
