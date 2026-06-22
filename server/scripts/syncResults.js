@@ -1,8 +1,3 @@
-/**
- * Sync service: pobiera wyniki z football-data.org i uzupełnia faze pucharową.
- * Uruchamiany co 5 minut przez node-cron.
- * Można też uruchomić ręcznie: node scripts/syncResults.js
- */
 const axios = require('axios');
 const { db, initSchema } = require('../db/database');
 const { calculatePoints } = require('../db/scoring');
@@ -10,84 +5,34 @@ const { calculatePoints } = require('../db/scoring');
 const API_KEY = process.env.FOOTBALL_API_KEY;
 const BASE_URL = 'https://api.football-data.org/v4';
 
-// Mapowanie angielskich nazw API → polskie nazwy w bazie
 const EN_TO_PL = {
-  'Mexico':                  'Meksyk',
-  'United States':           'USA',
-  'USA':                     'USA',
-  'Canada':                  'Kanada',
-  'Argentina':               'Argentyna',
-  'Brazil':                  'Brazylia',
-  'Colombia':                'Kolumbia',
-  'Ecuador':                 'Ekwador',
-  'Uruguay':                 'Urugwaj',
-  'Chile':                   'Chile',
-  'Peru':                    'Peru',
-  'Venezuela':               'Wenezuela',
-  'Paraguay':                'Paragwaj',
-  'Germany':                 'Niemcy',
-  'France':                  'Francja',
-  'Spain':                   'Hiszpania',
-  'England':                 'Anglia',
-  'Portugal':                'Portugalia',
-  'Netherlands':             'Holandia',
-  'Belgium':                 'Belgia',
-  'Italy':                   'Włochy',
-  'Switzerland':             'Szwajcaria',
-  'Croatia':                 'Chorwacja',
-  'Denmark':                 'Dania',
-  'Austria':                 'Austria',
-  'Scotland':                'Szkocja',
-  'Hungary':                 'Węgry',
-  'Turkey':                  'Turcja',
-  'Türkiye':                 'Turcja',
-  'Czech Republic':          'Czechy',
-  'Czechia':                 'Czechy',
-  'Poland':                  'Polska',
-  'Romania':                 'Rumunia',
-  'Serbia':                  'Serbia',
-  'Ukraine':                 'Ukraina',
-  'Sweden':                  'Szwecja',
-  'Norway':                  'Norwegia',
-  'Japan':                   'Japonia',
-  'South Korea':             'Korea Południowa',
-  'Korea Republic':          'Korea Południowa',
-  'Australia':               'Australia',
-  'Iran':                    'Iran',
-  'Saudi Arabia':            'Arabia Saudyjska',
-  'Jordan':                  'Jordania',
-  'Iraq':                    'Irak',
-  'Uzbekistan':              'Uzbekistan',
-  'Qatar':                   'Katar',
-  'Morocco':                 'Maroko',
-  'Senegal':                 'Senegal',
-  'Nigeria':                 'Nigeria',
-  'Cameroon':                'Kamerun',
-  'DR Congo':                'DR Konga',
-  'Congo DR':                'DR Konga',
-  'Democratic Republic of Congo': 'DR Konga',
-  'Mali':                    'Mali',
-  'Egypt':                   'Egipt',
-  'Ghana':                   'Ghana',
-  'Tunisia':                 'Tunezja',
-  'Algeria':                 'Algieria',
-  'Panama':                  'Panama',
-  'Jamaica':                 'Jamajka',
-  'Honduras':                'Honduras',
-  'Costa Rica':              'Kostaryka',
-  'Trinidad and Tobago':     'Trynidad i Tobago',
-  'Haiti':                   'Haiti',
-  'New Zealand':             'Nowa Zelandia',
-  'South Africa':            'RPA',
-  'Curaçao':                 'Curacao',
-  'Curacao':                 'Curacao',
-  "Côte d'Ivoire":           'Wybrzeże Kości Słoniowej',
-  'Ivory Coast':             'Wybrzeże Kości Słoniowej',
-  'Cape Verde':              'Republika Zielonego Przylądka',
-  'Cape Verde Islands':      'Republika Zielonego Przylądka',
-  'Bosnia and Herzegovina':  'Bośnia i Hercegowina',
-  'Bosnia & Herzegovina':    'Bośnia i Hercegowina',
-  'Bosnia-Herzegovina':      'Bośnia i Hercegowina',
+  'Mexico': 'Meksyk', 'United States': 'USA', 'USA': 'USA', 'Canada': 'Kanada',
+  'Argentina': 'Argentyna', 'Brazil': 'Brazylia', 'Colombia': 'Kolumbia',
+  'Ecuador': 'Ekwador', 'Uruguay': 'Urugwaj', 'Chile': 'Chile', 'Peru': 'Peru',
+  'Venezuela': 'Wenezuela', 'Paraguay': 'Paragwaj', 'Germany': 'Niemcy',
+  'France': 'Francja', 'Spain': 'Hiszpania', 'England': 'Anglia',
+  'Portugal': 'Portugalia', 'Netherlands': 'Holandia', 'Belgium': 'Belgia',
+  'Italy': 'Włochy', 'Switzerland': 'Szwajcaria', 'Croatia': 'Chorwacja',
+  'Denmark': 'Dania', 'Austria': 'Austria', 'Scotland': 'Szkocja',
+  'Hungary': 'Węgry', 'Turkey': 'Turcja', 'Türkiye': 'Turcja',
+  'Czech Republic': 'Czechy', 'Czechia': 'Czechy', 'Poland': 'Polska',
+  'Romania': 'Rumunia', 'Serbia': 'Serbia', 'Ukraine': 'Ukraina',
+  'Sweden': 'Szwecja', 'Norway': 'Norwegia', 'Japan': 'Japonia',
+  'South Korea': 'Korea Południowa', 'Korea Republic': 'Korea Południowa',
+  'Australia': 'Australia', 'Iran': 'Iran', 'Saudi Arabia': 'Arabia Saudyjska',
+  'Jordan': 'Jordania', 'Iraq': 'Irak', 'Uzbekistan': 'Uzbekistan', 'Qatar': 'Katar',
+  'Morocco': 'Maroko', 'Senegal': 'Senegal', 'Nigeria': 'Nigeria',
+  'Cameroon': 'Kamerun', 'DR Congo': 'DR Konga', 'Congo DR': 'DR Konga',
+  'Democratic Republic of Congo': 'DR Konga', 'Mali': 'Mali', 'Egypt': 'Egipt',
+  'Ghana': 'Ghana', 'Tunisia': 'Tunezja', 'Algeria': 'Algieria',
+  'Panama': 'Panama', 'Jamaica': 'Jamajka', 'Honduras': 'Honduras',
+  'Costa Rica': 'Kostaryka', 'Trinidad and Tobago': 'Trynidad i Tobago',
+  'Haiti': 'Haiti', 'New Zealand': 'Nowa Zelandia', 'South Africa': 'RPA',
+  'Curaçao': 'Curacao', 'Curacao': 'Curacao',
+  "Côte d'Ivoire": 'Wybrzeże Kości Słoniowej', 'Ivory Coast': 'Wybrzeże Kości Słoniowej',
+  'Cape Verde': 'Republika Zielonego Przylądka', 'Cape Verde Islands': 'Republika Zielonego Przylądka',
+  'Bosnia and Herzegovina': 'Bośnia i Hercegowina', 'Bosnia & Herzegovina': 'Bośnia i Hercegowina',
+  'Bosnia-Herzegovina': 'Bośnia i Hercegowina',
 };
 
 const FLAG_BASE = '/flags';
@@ -107,120 +52,88 @@ const FLAG_MAP = {
   'Bośnia i Hercegowina': 'ba',
 };
 
-function toPlName(engName) {
-  return EN_TO_PL[engName] || engName;
-}
+function toPlName(engName) { return EN_TO_PL[engName] || engName; }
+function toFlag(plName) { const c = FLAG_MAP[plName]; return c ? `${FLAG_BASE}/${c}.png` : null; }
 
-function toFlag(plName) {
-  const code = FLAG_MAP[plName];
-  return code ? `${FLAG_BASE}/${code}.png` : null;
-}
-
-// Dopasowanie meczu API do meczu w bazie po drużynach + dacie (±1 dzień tolerancji)
 function matchDbRow(dbMatches, homeEng, awayEng) {
   const homePl = toPlName(homeEng);
   const awayPl = toPlName(awayEng);
-  return dbMatches.find(m =>
-    m.home_team === homePl && m.away_team === awayPl
-  ) || dbMatches.find(m =>
-    // fallback: odwrócona kolejność (API może zwrócić inaczej)
-    m.home_team === awayPl && m.away_team === homePl
-  );
+  return dbMatches.find(m => m.home_team === homePl && m.away_team === awayPl)
+    || dbMatches.find(m => m.home_team === awayPl && m.away_team === homePl);
 }
 
-async function fetchRecentMatches() {
-  const LIVE_KEY = process.env.APISPORTS_KEY;
-  if (!LIVE_KEY) return [];
-  // Pobieramy dziś i wczoraj żeby złapać mecze które zakończyły się późno poprzedniego dnia (UTC)
-  const today = new Date();
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-  const todayStr = today.toISOString().slice(0, 10);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+async function fetchAllMatches() {
+  const resp = await axios.get(`${BASE_URL}/competitions/WC/matches`, {
+    headers: { 'X-Auth-Token': API_KEY },
+    params: { season: 2026 },
+  });
+  return resp.data.matches || [];
+}
 
-  const dates = todayStr === yesterdayStr ? [todayStr] : [todayStr, yesterdayStr];
-  const results = [];
-  for (const date of dates) {
-    const resp = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${date}`, {
-      headers: { 'x-apisports-key': LIVE_KEY },
-    });
-    results.push(...(resp.data.response || []).filter(m => m.league.id === 1));
+async function applyFinishedMatch(dbRow, hs, as_, pen) {
+  await db('matches').where({ id: dbRow.id }).update({
+    home_score: hs, away_score: as_,
+    ended_with_penalties: pen ? 1 : 0,
+    status: 'finished',
+    live_home: null, live_away: null, live_minute: null,
+  });
+  const updatedMatch = await db('matches').where({ id: dbRow.id }).first();
+  const predictions = await db('predictions').where({ match_id: dbRow.id });
+  for (const pred of predictions) {
+    const { points } = calculatePoints(updatedMatch, pred);
+    await db('predictions').where({ id: pred.id }).update({ points });
   }
-  return results;
 }
 
-// 1. Aktualizuje wyniki zakończonych meczów i przelicza punkty (api-football)
-async function syncFinishedMatches(todayMatches, dbMatches) {
-  const finished = todayMatches.filter(m => m.fixture.status.short === 'FT' || m.fixture.status.short === 'AET' || m.fixture.status.short === 'PEN');
+// 1. Aktualizuje wyniki zakończonych meczów i przelicza punkty
+async function syncFinishedMatches(apiMatches, dbMatches) {
+  const finished = apiMatches.filter(m => m.status === 'FINISHED');
   let updated = 0;
 
   for (const m of finished) {
-    const isKnockout = !m.league.round.includes('Group');
-    const hasExtraTime = m.score.extratime?.home != null;
-    const hs = (isKnockout && hasExtraTime) ? m.score.extratime.home : m.score.fulltime.home;
-    const as_ = (isKnockout && hasExtraTime) ? m.score.extratime.away : m.score.fulltime.away;
+    const isKnockout = m.stage !== 'GROUP_STAGE';
+    const hasExtraTime = m.score.extraTime?.home != null;
+    const hs = (isKnockout && hasExtraTime) ? m.score.extraTime.home : m.score.fullTime.home;
+    const as_ = (isKnockout && hasExtraTime) ? m.score.extraTime.away : m.score.fullTime.away;
     if (hs === null || hs === undefined) continue;
 
-    const pen = m.score.penalty?.home != null;
+    const pen = m.score.penalties != null &&
+      (m.score.penalties.home !== null || m.score.penalties.away !== null);
 
-    const dbRow = matchDbRow(dbMatches, m.teams.home.name, m.teams.away.name);
-    if (!dbRow) {
-      console.log(`  [WARN] Nie znaleziono w bazie: ${m.teams.home.name} vs ${m.teams.away.name}`);
-      continue;
-    }
+    const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
+    if (!dbRow) { console.log(`  [WARN] Nie znaleziono: ${m.homeTeam.name} vs ${m.awayTeam.name}`); continue; }
 
-    // Zawsze aktualizuj jeśli wynik się różni (naprawia błędne dane)
+    // Aktualizuj jeśli jeszcze nie finished LUB jeśli wynik się różni (korekta błędnych danych)
     if (dbRow.status === 'finished' && dbRow.home_score === hs && dbRow.away_score === as_) continue;
 
-    await db('matches').where({ id: dbRow.id }).update({
-      home_score: hs,
-      away_score: as_,
-      ended_with_penalties: pen ? 1 : 0,
-      status: 'finished',
-      live_home: null,
-      live_away: null,
-      live_minute: null,
-    });
-
-    const updatedMatch = await db('matches').where({ id: dbRow.id }).first();
-    const predictions = await db('predictions').where({ match_id: dbRow.id });
-    for (const pred of predictions) {
-      const { points } = calculatePoints(updatedMatch, pred);
-      await db('predictions').where({ id: pred.id }).update({ points });
-    }
-
-    const homePl = toPlName(m.teams.home.name);
-    const awayPl = toPlName(m.teams.away.name);
-    console.log(`  ✓ ${homePl} ${hs}:${as_} ${awayPl}${pen ? ' (k)' : ''}`);
+    await applyFinishedMatch(dbRow, hs, as_, pen);
+    console.log(`  ✓ ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}${pen ? ' (k)' : ''}`);
     updated++;
   }
   return updated;
 }
 
-// 2. Uzupełnia drużyny TBD w fazie pucharowej (api-football, tylko dzisiejsze mecze)
-async function syncKnockoutTeams(todayMatches, dbMatches) {
-  const knockout = todayMatches.filter(m =>
-    !m.league.round.includes('Group') &&
-    m.teams.home.name && m.teams.away.name &&
-    m.teams.home.name !== 'TBD' && m.teams.away.name !== 'TBD'
+// 2. Uzupełnia drużyny TBD w fazie pucharowej
+async function syncKnockoutTeams(apiMatches, dbMatches) {
+  const knockout = apiMatches.filter(m =>
+    m.stage !== 'GROUP_STAGE' &&
+    m.homeTeam?.name && m.awayTeam?.name &&
+    m.homeTeam.name !== 'TBD' && m.awayTeam.name !== 'TBD'
   );
 
   let updated = 0;
   for (const m of knockout) {
-    const homePl = toPlName(m.teams.home.name);
-    const awayPl = toPlName(m.teams.away.name);
-    const apiDate = m.fixture.date.slice(0, 10);
-
+    const homePl = toPlName(m.homeTeam.name);
+    const awayPl = toPlName(m.awayTeam.name);
+    const apiDate = m.utcDate.slice(0, 10);
     const dbRow = dbMatches.find(d =>
       d.home_team === 'TBD' && d.away_team === 'TBD' &&
       d.match_date === apiDate && d.status !== 'finished'
     );
     if (!dbRow) continue;
-
     await db('matches').where({ id: dbRow.id }).update({
-      home_team: homePl,
-      away_team: awayPl,
-      home_flag: toFlag(homePl),
-      away_flag: toFlag(awayPl),
+      home_team: homePl, away_team: awayPl,
+      home_flag: toFlag(homePl), away_flag: toFlag(awayPl),
     });
     console.log(`  ✓ Uzupełniono bracket: ${homePl} vs ${awayPl} (${apiDate})`);
     updated++;
@@ -228,127 +141,21 @@ async function syncKnockoutTeams(todayMatches, dbMatches) {
   return updated;
 }
 
-// 3. Aktualizuje wyniki na żywo używając api-football (ma prawdziwe live z minutą)
-async function syncLiveMatches(dbMatches) {
-  const LIVE_KEY = process.env.APISPORTS_KEY;
-  if (!LIVE_KEY) return 0;
-
-  const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
-    headers: { 'x-apisports-key': LIVE_KEY },
-  });
-
-  const live = resp.data.response || [];
-
-  const liveIds = new Set();
-
-  for (const m of live) {
-    const homeEng = m.teams.home.name;
-    const awayEng = m.teams.away.name;
-    const hs = m.goals.home ?? 0;
-    const as_ = m.goals.away ?? 0;
-    const minute = m.fixture.status.elapsed;
-
-    const dbRow = matchDbRow(dbMatches, homeEng, awayEng);
-    if (!dbRow || dbRow.status === 'finished') continue;
-
-    liveIds.add(dbRow.id);
-
-    if (dbRow.status !== 'in_play' || dbRow.live_home !== hs || dbRow.live_away !== as_ || dbRow.live_minute !== minute) {
-      await db('matches').where({ id: dbRow.id }).update({
-        status: 'in_play',
-        live_home: hs,
-        live_away: as_,
-        live_minute: minute,
-      });
-    }
-  }
-
-  // Mecze które były in_play ale zniknęły z live feeda — zakończone, użyj ostatniego live wyniku
-  const staleLive = dbMatches.filter(m => m.status === 'in_play' && !liveIds.has(m.id));
-  for (const m of staleLive) {
-    if (m.live_home !== null && m.live_away !== null) {
-      await db('matches').where({ id: m.id }).update({
-        status: 'finished',
-        home_score: m.live_home,
-        away_score: m.live_away,
-        live_home: null, live_away: null, live_minute: null,
-      });
-      // Przelicz punkty
-      const updatedMatch = await db('matches').where({ id: m.id }).first();
-      const predictions = await db('predictions').where({ match_id: m.id });
-      for (const pred of predictions) {
-        const { points } = calculatePoints(updatedMatch, pred);
-        await db('predictions').where({ id: pred.id }).update({ points });
-      }
-      console.log(`  ✓ Zakończono (live→FT): ${m.home_team} ${m.live_home}:${m.live_away} ${m.away_team}`);
-    } else {
-      await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null, live_minute: null });
-    }
-  }
-
-  return live.length;
-}
-
-// Fallback: football-data.org dla meczów które minęły ale nadal są 'scheduled' (nie przeszły przez live)
-async function syncMissedMatches(dbMatches) {
-  const today = new Date().toISOString().slice(0, 10);
-  const missed = dbMatches.filter(m => m.status === 'scheduled' && m.match_date < today);
-  if (missed.length === 0) return 0;
-
-  const resp = await axios.get(`${BASE_URL}/competitions/WC/matches`, {
-    headers: { 'X-Auth-Token': API_KEY },
-    params: { season: 2026 },
-  });
-  const apiMatches = resp.data.matches || [];
-  const finished = apiMatches.filter(m => m.status === 'FINISHED');
-  let updated = 0;
-
-  for (const m of finished) {
-    const hs = m.score.fullTime.home;
-    const as_ = m.score.fullTime.away;
-    if (hs === null || as_ === null) continue;
-    const pen = m.score.penalties != null &&
-      (m.score.penalties.home !== null || m.score.penalties.away !== null);
-    const dbRow = missed.find(d =>
-      (d.home_team === toPlName(m.homeTeam.name) && d.away_team === toPlName(m.awayTeam.name)) ||
-      (d.home_team === toPlName(m.awayTeam.name) && d.away_team === toPlName(m.homeTeam.name))
-    );
-    if (!dbRow) continue;
-
-    await db('matches').where({ id: dbRow.id }).update({ home_score: hs, away_score: as_, ended_with_penalties: pen ? 1 : 0, status: 'finished' });
-    const updatedMatch = await db('matches').where({ id: dbRow.id }).first();
-    const predictions = await db('predictions').where({ match_id: dbRow.id });
-    for (const pred of predictions) {
-      const { points } = calculatePoints(updatedMatch, pred);
-      await db('predictions').where({ id: pred.id }).update({ points });
-    }
-    console.log(`  ✓ [catchup] ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}`);
-    updated++;
-  }
-  return updated;
-}
-
 async function sync() {
   if (!API_KEY) { console.error('Brak FOOTBALL_API_KEY'); return; }
-
   console.log(`[${new Date().toLocaleTimeString('pl-PL')}] Synchronizacja wyników...`);
 
   try {
-    const [todayMatches, dbMatches] = await Promise.all([
-      fetchRecentMatches(),
+    const [apiMatches, dbMatches] = await Promise.all([
+      fetchAllMatches(),
       db('matches').select('*'),
     ]);
 
-    const liveCount = await syncLiveMatches(dbMatches);
-    const r1 = await syncFinishedMatches(todayMatches, dbMatches);
-    const r2 = await syncKnockoutTeams(todayMatches, dbMatches);
-    const r3 = await syncMissedMatches(dbMatches);
+    const r1 = await syncFinishedMatches(apiMatches, dbMatches);
+    const r2 = await syncKnockoutTeams(apiMatches, dbMatches);
 
-    if (liveCount > 0) console.log(`  🔴 Na żywo: ${liveCount} meczów`);
-    if (r1 === 0 && r2 === 0 && r3 === 0 && liveCount === 0) console.log('  Brak nowych danych.');
-    else if (r1 > 0 || r2 > 0 || r3 > 0) console.log(`  Wyniki: ${r1 + r3} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
-
-    return liveCount > 0;
+    if (r1 === 0 && r2 === 0) console.log('  Brak nowych danych.');
+    else console.log(`  Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
 
   } catch (e) {
     if (e.response?.status === 429) {
@@ -356,13 +163,11 @@ async function sync() {
     } else {
       console.error('  [ERROR]', e.message);
     }
-    return false;
   }
 }
 
 module.exports = { sync };
 
-// Uruchomienie ręczne
 if (require.main === module) {
   require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
   initSchema().then(() => sync()).then(() => db.destroy());

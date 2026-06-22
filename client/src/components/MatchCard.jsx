@@ -12,19 +12,15 @@ const POINTS_COLORS = {
 };
 
 function formatTime(dateStr, timeStr) {
-  // Parsuj jako CEST, wyświetl w strefie użytkownika — dla polskiego użytkownika wyjdzie identycznie
   const dt = new Date(`${dateStr}T${timeStr}:00+02:00`);
   return dt.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 }
 
-// +02:00 = CEST (czas polski letni) — turniej czerwiec–lipiec
 function isLocked(dateStr, timeStr) {
   const dt = new Date(`${dateStr}T${timeStr}:00+02:00`);
   return Date.now() >= dt.getTime() - 5 * 60 * 1000;
 }
 
-
-// Kolor obramowania karty na podstawie zdobytych punktów
 const CARD_COLORS = {
   5: 'border-green-500/60 bg-green-500/5',
   3: 'border-green-500/60 bg-green-500/5',
@@ -37,27 +33,12 @@ export default function MatchCard({ match, onUpdate }) {
   const { user } = useAuth();
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
-  const live = match.status === 'in_play';
-
-  const [displayMinute, setDisplayMinute] = useState(match.live_minute);
-  const minuteBase = useRef({ minute: match.live_minute, at: Date.now() });
-
-  useEffect(() => {
-    if (!live || match.live_minute == null) { setDisplayMinute(null); return; }
-    minuteBase.current = { minute: match.live_minute, at: Date.now() };
-    setDisplayMinute(match.live_minute);
-    const t = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - minuteBase.current.at) / 60000);
-      setDisplayMinute(Math.min(minuteBase.current.minute + elapsed, 90));
-    }, 10000);
-    return () => clearInterval(t);
-  }, [live, match.live_minute]);
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
   const cardColor = finished && match.pred_points !== null && match.pred_points !== undefined
     ? CARD_COLORS[match.pred_points] ?? ''
-    : live ? 'border-orange-500/80 bg-orange-500/5' : '';
+    : '';
 
   const [home, setHome] = useState(
     match.pred_home !== null && match.pred_home !== undefined ? String(match.pred_home) : ''
@@ -133,23 +114,12 @@ export default function MatchCard({ match, onUpdate }) {
                 <span className="text-xs text-purple-400 ml-1">(k)</span>
               )}
             </div>
-          ) : live ? (
-            <>
-              <div className="flex items-center gap-1 text-xl font-black">
-                <span className="text-red-400">{match.live_home}</span>
-                <span className="text-white/40">:</span>
-                <span className="text-red-400">{match.live_away}</span>
-              </div>
-              <span className="text-xs text-orange-400 font-bold animate-pulse">
-                🔴 NA ŻYWO {displayMinute ? `${displayMinute}'` : ''}
-              </span>
-            </>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
               {formatTime(match.match_date, match.match_time)}
             </div>
           )}
-          {locked && !finished && !live && (
+          {locked && !finished && (
             <span className="text-xs text-red-400 font-semibold">🔒 Zablokowane</span>
           )}
         </div>
@@ -165,10 +135,9 @@ export default function MatchCard({ match, onUpdate }) {
         </div>
       </div>
 
-      {/* Prediction area – show for all non-group matches (even TBD), and for group matches with known teams */}
+      {/* Prediction area */}
       {(!isTBD || isKnockout) && (
         <div className="mt-4 pt-3 border-t border-white/10">
-          {/* Niezalogowany – zachęta do logowania */}
           {!user ? (
             <div className="text-center">
               <Link to="/login" className="text-sm text-wc-gold hover:underline font-semibold">
@@ -207,9 +176,7 @@ export default function MatchCard({ match, onUpdate }) {
                         {p.predict_penalties ? (
                           <span className="text-purple-400 font-semibold">🎯 k</span>
                         ) : (
-                          <span className={`font-semibold ${p.points !== null && p.points !== undefined ? (POINTS_COLORS[p.points] ? '' : '') : ''}`}>
-                            {p.home_score}:{p.away_score}
-                          </span>
+                          <span className="font-semibold">{p.home_score}:{p.away_score}</span>
                         )}
                         {p.points !== null && p.points !== undefined && (
                           <span className={`badge text-xs py-0 ${POINTS_COLORS[p.points]}`}>+{p.points}</span>
@@ -252,7 +219,6 @@ export default function MatchCard({ match, onUpdate }) {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Score inputs */}
               {!penalties && (
                 <div className="flex items-center justify-center gap-3">
                   <input
@@ -277,7 +243,6 @@ export default function MatchCard({ match, onUpdate }) {
                 </div>
               )}
 
-              {/* Penalty option – knockout rounds only */}
               {isKnockout && (
                 <label className="flex items-center justify-center gap-2 cursor-pointer select-none">
                   <input
