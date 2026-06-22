@@ -128,15 +128,24 @@ function matchDbRow(dbMatches, homeEng, awayEng) {
   );
 }
 
-async function fetchTodayMatches() {
+async function fetchRecentMatches() {
   const LIVE_KEY = process.env.APISPORTS_KEY;
   if (!LIVE_KEY) return [];
-  const today = new Date().toISOString().slice(0, 10);
-  const resp = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${today}`, {
-    headers: { 'x-apisports-key': LIVE_KEY },
-  });
-  // Filtruj tylko MŚ (league.id === 1)
-  return (resp.data.response || []).filter(m => m.league.id === 1);
+  // Pobieramy dziś i wczoraj żeby złapać mecze które zakończyły się późno poprzedniego dnia (UTC)
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const todayStr = today.toISOString().slice(0, 10);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  const dates = todayStr === yesterdayStr ? [todayStr] : [todayStr, yesterdayStr];
+  const results = [];
+  for (const date of dates) {
+    const resp = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${date}`, {
+      headers: { 'x-apisports-key': LIVE_KEY },
+    });
+    results.push(...(resp.data.response || []).filter(m => m.league.id === 1));
+  }
+  return results;
 }
 
 // 1. Aktualizuje wyniki zakończonych meczów i przelicza punkty (api-football)
@@ -254,13 +263,69 @@ async function syncLiveMatches(dbMatches) {
     }
   }
 
-  // Wyczyść live dla meczów które przestały być na żywo
+  // Mecze które były in_play ale zniknęły z live feeda — zakończone, użyj ostatniego live wyniku
   const staleLive = dbMatches.filter(m => m.status === 'in_play' && !liveIds.has(m.id));
   for (const m of staleLive) {
-    await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null, live_minute: null });
+    if (m.live_home !== null && m.live_away !== null) {
+      await db('matches').where({ id: m.id }).update({
+        status: 'finished',
+        home_score: m.live_home,
+        away_score: m.live_away,
+        live_home: null, live_away: null, live_minute: null,
+      });
+      // Przelicz punkty
+      const updatedMatch = await db('matches').where({ id: m.id }).first();
+      const predictions = await db('predictions').where({ match_id: m.id });
+      for (const pred of predictions) {
+        const { points } = calculatePoints(updatedMatch, pred);
+        await db('predictions').where({ id: pred.id }).update({ points });
+      }
+      console.log(`  ✓ Zakończono (live→FT): ${m.home_team} ${m.live_home}:${m.live_away} ${m.away_team}`);
+    } else {
+      await db('matches').where({ id: m.id }).update({ status: 'scheduled', live_home: null, live_away: null, live_minute: null });
+    }
   }
 
   return live.length;
+}
+
+// Fallback: football-data.org dla meczów które minęły ale nadal są 'scheduled' (nie przeszły przez live)
+async function syncMissedMatches(dbMatches) {
+  const today = new Date().toISOString().slice(0, 10);
+  const missed = dbMatches.filter(m => m.status === 'scheduled' && m.match_date < today);
+  if (missed.length === 0) return 0;
+
+  const resp = await axios.get(`${BASE_URL}/competitions/WC/matches`, {
+    headers: { 'X-Auth-Token': API_KEY },
+    params: { season: 2026 },
+  });
+  const apiMatches = resp.data.matches || [];
+  const finished = apiMatches.filter(m => m.status === 'FINISHED');
+  let updated = 0;
+
+  for (const m of finished) {
+    const hs = m.score.fullTime.home;
+    const as_ = m.score.fullTime.away;
+    if (hs === null || as_ === null) continue;
+    const pen = m.score.penalties != null &&
+      (m.score.penalties.home !== null || m.score.penalties.away !== null);
+    const dbRow = missed.find(d =>
+      (d.home_team === toPlName(m.homeTeam.name) && d.away_team === toPlName(m.awayTeam.name)) ||
+      (d.home_team === toPlName(m.awayTeam.name) && d.away_team === toPlName(m.homeTeam.name))
+    );
+    if (!dbRow) continue;
+
+    await db('matches').where({ id: dbRow.id }).update({ home_score: hs, away_score: as_, ended_with_penalties: pen ? 1 : 0, status: 'finished' });
+    const updatedMatch = await db('matches').where({ id: dbRow.id }).first();
+    const predictions = await db('predictions').where({ match_id: dbRow.id });
+    for (const pred of predictions) {
+      const { points } = calculatePoints(updatedMatch, pred);
+      await db('predictions').where({ id: pred.id }).update({ points });
+    }
+    console.log(`  ✓ [catchup] ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}`);
+    updated++;
+  }
+  return updated;
 }
 
 async function sync() {
@@ -270,17 +335,18 @@ async function sync() {
 
   try {
     const [todayMatches, dbMatches] = await Promise.all([
-      fetchTodayMatches(),
+      fetchRecentMatches(),
       db('matches').select('*'),
     ]);
 
     const liveCount = await syncLiveMatches(dbMatches);
     const r1 = await syncFinishedMatches(todayMatches, dbMatches);
     const r2 = await syncKnockoutTeams(todayMatches, dbMatches);
+    const r3 = await syncMissedMatches(dbMatches);
 
     if (liveCount > 0) console.log(`  🔴 Na żywo: ${liveCount} meczów`);
-    if (r1 === 0 && r2 === 0 && liveCount === 0) console.log('  Brak nowych danych.');
-    else if (r1 > 0 || r2 > 0) console.log(`  Wyniki: ${r1} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
+    if (r1 === 0 && r2 === 0 && r3 === 0 && liveCount === 0) console.log('  Brak nowych danych.');
+    else if (r1 > 0 || r2 > 0 || r3 > 0) console.log(`  Wyniki: ${r1 + r3} zaktualizowanych, bracket: ${r2} uzupełnionych.`);
 
     return liveCount > 0;
 
