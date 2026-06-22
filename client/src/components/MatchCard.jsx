@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useLiveTimer } from '../hooks/useLiveTimer';
 
 const POINTS_COLORS = {
   5: 'bg-purple-500 text-white',
@@ -41,7 +40,6 @@ export default function MatchCard({ match, onUpdate }) {
   const locked = isLocked(match.match_date, match.match_time);
   const finished = match.status === 'finished';
   const live = match.status === 'in_play' || (!finished && isInPlay(match.match_date, match.match_time));
-  const liveMinute = useLiveTimer(match, live);
   const isKnockout = match.round !== 'Faza grupowa';
   const isTBD = match.home_team === 'TBD' || match.away_team === 'TBD';
 
@@ -135,9 +133,7 @@ export default function MatchCard({ match, onUpdate }) {
             </div>
           )}
           {live && (
-            <span className="text-xs text-orange-400 font-bold animate-pulse mt-0.5">
-              ⚽ {liveMinute === 'HT' ? 'PRZERWA' : liveMinute ? `${liveMinute}'` : 'MECZ TRWA'}
-            </span>
+            <span className="text-xs text-orange-400 font-bold animate-pulse mt-0.5">⚽ MECZ TRWA</span>
           )}
           {locked && !finished && !live && (
             <span className="text-xs text-red-400 font-semibold">🔒 Zablokowane</span>
