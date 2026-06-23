@@ -113,6 +113,17 @@ router.put('/users/:id/reset-password', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.delete('/users/:id', adminAuth, async (req, res) => {
+  const user = await db('users').where({ id: req.params.id }).first();
+  if (!user) return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+  if (user.is_admin) return res.status(403).json({ error: 'Nie można usunąć admina' });
+
+  await db('predictions').where({ user_id: req.params.id }).delete();
+  await db('champion_predictions').where({ user_id: req.params.id }).delete();
+  await db('users').where({ id: req.params.id }).delete();
+  res.json({ success: true });
+});
+
 router.get('/matches/:id/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('users as u', 'u.id', 'p.user_id')

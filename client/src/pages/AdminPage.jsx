@@ -179,6 +179,16 @@ export default function AdminPage() {
     }
   };
 
+  const deleteUser = async (userId, username) => {
+    if (!window.confirm(`Usunąć użytkownika "${username}"? Usunie też wszystkie jego typy.`)) return;
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      setUsers(users.filter(u => u.id !== userId));
+    } catch (e) {
+      alert(e.response?.data?.error || 'Błąd usuwania');
+    }
+  };
+
   const displayMatches = filter === 'all'
     ? matches
     : filter === 'unfinished'
@@ -238,6 +248,7 @@ export default function AdminPage() {
               <th className="text-left py-2 px-2">Zarejestrowany</th>
               <th className="text-center py-2 px-2">Admin</th>
               <th className="text-center py-2 px-2">Hasło</th>
+              <th className="text-center py-2 px-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -267,6 +278,16 @@ export default function AdminPage() {
                       <span className="text-xs text-green-400">{resetMsg[u.id]}</span>
                     )}
                   </div>
+                </td>
+                <td className="py-2 px-2 text-center">
+                  {!u.is_admin && (
+                    <button
+                      onClick={() => deleteUser(u.id, u.username)}
+                      className="text-xs px-2 py-0.5 rounded font-bold bg-red-900/60 text-red-300 hover:bg-red-800"
+                    >
+                      Usuń
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
