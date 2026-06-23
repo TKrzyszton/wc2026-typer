@@ -73,7 +73,13 @@ async function initSchema() {
         t.string('live_phase');
         t.bigint('live_phase_since');
         t.bigint('live_minute_at');
+        t.integer('live_approximate').defaultTo(0);
       });
+    } else {
+      const hasApproxCol = await db.schema.hasColumn('matches', 'live_approximate');
+      if (!hasApproxCol) {
+        await db.schema.table('matches', t => t.integer('live_approximate').defaultTo(0));
+      }
     }
   }
 

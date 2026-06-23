@@ -139,6 +139,9 @@ export default function MatchCard({ match, onUpdate }) {
               ⚽ {liveMinute === 'HT' ? 'PRZERWA' : liveMinute ? `${liveMinute}'` : 'MECZ TRWA'}
             </span>
           )}
+          {live && !!match.live_approximate && (
+            <span className="text-xs text-white/30 mt-0.5">zegar orientacyjny</span>
+          )}
           {locked && !finished && !live && (
             <span className="text-xs text-red-400 font-semibold">🔒 Zablokowane</span>
           )}
