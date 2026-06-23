@@ -142,10 +142,10 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
 }
 
 // Stan w pamięci — resetuje się przy restarcie serwera (akceptowalne)
-const liveState = {}; // matchId → Set of completed actions
+const liveState = {}; // matchId → { done: Set, htRetries: number, ftRetries: number }
 
 function getLiveState(matchId) {
-  if (!liveState[matchId]) liveState[matchId] = new Set();
+  if (!liveState[matchId]) liveState[matchId] = { done: new Set(), htRetries: 0, ftRetries: 0 };
   return liveState[matchId];
 }
 
@@ -170,7 +170,8 @@ async function apiFetchLive(homeTeamPl, awayTeamPl) {
 
 async function manageLivePhase(dbMatch) {
   const { id: matchId, home_team, away_team, match_date, match_time } = dbMatch;
-  const done = getLiveState(matchId);
+  const state = getLiveState(matchId);
+  const { done } = state;
 
   const kickoff = new Date(`${match_date}T${match_time}:00+02:00`).getTime();
   const now = Date.now();
@@ -214,31 +215,28 @@ async function manageLivePhase(dbMatch) {
       }
     }
 
-    // +50 min: sprawdź HT
-    if (elapsed >= 50 * 60000 && !done.has('ht_check')) {
-      done.add('ht_check');
+    // +50 min: pierwsza próba HT, potem co minutę do max 5 retries
+    if (elapsed >= 50 * 60000 && !done.has('ht_done')) {
+      if (!done.has('ht_check')) done.add('ht_check');
+      else state.htRetries++;
+
       const f = await apiFetchLive(home_team, away_team);
       const s = f?.fixture.status.short;
+
       if (s === 'HT') {
         await enterHT();
+        done.add('ht_done');
       } else if (s === '2H' || s === 'ET') {
-        await enterP2(f); // serwer uruchomił się już w trakcie 2. połowy
+        await enterP2(f);
+        done.add('ht_done');
       } else if (s === 'FT' || s === 'AET' || s === 'PEN') {
         await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+        done.add('ht_done');
+      } else if (state.htRetries >= 5) {
+        await enterHT(); // wymuś po 5 minutach retries
+        done.add('ht_done');
       }
-      // else: jeszcze pierwsza połowa, retry za 5 min
-    }
-
-    // +55 min: retry HT
-    if (elapsed >= 55 * 60000 && !done.has('ht_retry') && phase === 'first_half') {
-      done.add('ht_retry');
-      const f = await apiFetchLive(home_team, away_team);
-      const s = f?.fixture.status.short;
-      if (s === '2H' || s === 'ET') {
-        await enterP2(f);
-      } else {
-        await enterHT(); // wymuś HT (brak odpowiedzi lub wciąż trwa)
-      }
+      // else: czekamy kolejną minutę
     }
   }
 
@@ -265,20 +263,22 @@ async function manageLivePhase(dbMatch) {
       }
     }
 
-    // +50 min od II połowy: sprawdź FT
-    if (p2elapsed >= 50 * 60000 && !done.has('ft_check')) {
-      done.add('ft_check');
+    // +50 min od II połowy: pierwsza próba FT, potem co minutę do max 5 retries
+    if (p2elapsed >= 50 * 60000 && !done.has('ft_done')) {
+      if (!done.has('ft_check')) done.add('ft_check');
+      else state.ftRetries++;
+
       const f = await apiFetchLive(home_team, away_team);
       const s = f?.fixture.status.short;
+
       if (!f || s === 'FT' || s === 'AET' || s === 'PEN') {
         await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+        done.add('ft_done');
+      } else if (state.ftRetries >= 5) {
+        await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+        done.add('ft_done');
       }
-    }
-
-    // +55 min od II połowy: wymuś koniec
-    if (p2elapsed >= 55 * 60000 && !done.has('ft_retry')) {
-      done.add('ft_retry');
-      await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+      // else: czekamy kolejną minutę
     }
   }
 }
