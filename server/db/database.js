@@ -61,11 +61,19 @@ async function initSchema() {
       t.integer('live_home');
       t.integer('live_away');
       t.integer('live_minute');
+      t.string('live_phase');
+      t.bigint('live_phase_since');
     });
   } else {
     const hasMinuteCol = await db.schema.hasColumn('matches', 'live_minute');
-    if (!hasMinuteCol) {
-      await db.schema.table('matches', t => t.integer('live_minute'));
+    if (!hasMinuteCol) await db.schema.table('matches', t => t.integer('live_minute'));
+    const hasPhaseCol = await db.schema.hasColumn('matches', 'live_phase');
+    if (!hasPhaseCol) {
+      await db.schema.table('matches', t => {
+        t.string('live_phase');
+        t.bigint('live_phase_since');
+        t.bigint('live_minute_at');
+      });
     }
   }
 

@@ -141,6 +141,148 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
   return updated;
 }
 
+// Stan w pamięci — resetuje się przy restarcie serwera (akceptowalne)
+const liveState = {}; // matchId → Set of completed actions
+
+function getLiveState(matchId) {
+  if (!liveState[matchId]) liveState[matchId] = new Set();
+  return liveState[matchId];
+}
+
+async function apiFetchLive(homeTeamPl, awayTeamPl) {
+  const LIVE_KEY = process.env.APISPORTS_KEY;
+  if (!LIVE_KEY) return null;
+  try {
+    const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
+      headers: { 'x-apisports-key': LIVE_KEY },
+    });
+    const fixtures = (resp.data.response || []).filter(f => f.league.id === 1);
+    return fixtures.find(f => {
+      const h = toPlName(f.teams.home.name);
+      const a = toPlName(f.teams.away.name);
+      return (h === homeTeamPl && a === awayTeamPl) || (h === awayTeamPl && a === homeTeamPl);
+    }) || null;
+  } catch (e) {
+    if (e.response?.status === 429) console.error('  [live-phase] Rate limit api-football (429)');
+    return null;
+  }
+}
+
+async function manageLivePhase(dbMatch) {
+  const { id: matchId, home_team, away_team, match_date, match_time } = dbMatch;
+  const done = getLiveState(matchId);
+
+  const kickoff = new Date(`${match_date}T${match_time}:00+02:00`).getTime();
+  const now = Date.now();
+  const elapsed = now - kickoff; // ms od kickoffu
+
+  let phase = dbMatch.live_phase || 'first_half';
+  let phaseSince = Number(dbMatch.live_phase_since) || kickoff;
+
+  async function enterHT() {
+    phase = 'half_time';
+    phaseSince = now;
+    await db('matches').where({ id: matchId }).update({
+      live_phase: 'half_time', live_phase_since: now, live_minute: 45, live_minute_at: now,
+    });
+    console.log(`  [live] ${home_team} vs ${away_team} → PRZERWA`);
+  }
+
+  async function enterP2(fixture) {
+    phase = 'second_half';
+    phaseSince = now;
+    const updates = { live_phase: 'second_half', live_phase_since: now };
+    if (fixture?.fixture.status.elapsed > 45) {
+      updates.live_minute = fixture.fixture.status.elapsed;
+      updates.live_minute_at = now;
+      done.add('p2_sync'); // już mamy minutę, nie trzeba sync za 5 min
+    }
+    await db('matches').where({ id: matchId }).update(updates);
+    console.log(`  [live] ${home_team} vs ${away_team} → II połowa`);
+  }
+
+  // === PIERWSZA POŁOWA ===
+  if (phase === 'first_half') {
+    // +5 min: zsynchronizuj minutę
+    if (elapsed >= 5 * 60000 && !done.has('p1_sync')) {
+      done.add('p1_sync');
+      const f = await apiFetchLive(home_team, away_team);
+      if (f?.fixture.status.elapsed) {
+        await db('matches').where({ id: matchId }).update({
+          live_minute: f.fixture.status.elapsed, live_minute_at: now,
+        });
+      }
+    }
+
+    // +50 min: sprawdź HT
+    if (elapsed >= 50 * 60000 && !done.has('ht_check')) {
+      done.add('ht_check');
+      const f = await apiFetchLive(home_team, away_team);
+      const s = f?.fixture.status.short;
+      if (s === 'HT') {
+        await enterHT();
+      } else if (s === '2H' || s === 'ET') {
+        await enterP2(f); // serwer uruchomił się już w trakcie 2. połowy
+      } else if (s === 'FT' || s === 'AET' || s === 'PEN') {
+        await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+      }
+      // else: jeszcze pierwsza połowa, retry za 5 min
+    }
+
+    // +55 min: retry HT
+    if (elapsed >= 55 * 60000 && !done.has('ht_retry') && phase === 'first_half') {
+      done.add('ht_retry');
+      const f = await apiFetchLive(home_team, away_team);
+      const s = f?.fixture.status.short;
+      if (s === '2H' || s === 'ET') {
+        await enterP2(f);
+      } else {
+        await enterHT(); // wymuś HT (brak odpowiedzi lub wciąż trwa)
+      }
+    }
+  }
+
+  // === PRZERWA ===
+  if (phase === 'half_time') {
+    if (now - phaseSince >= 15 * 60000 && !done.has('p2_start')) {
+      done.add('p2_start');
+      await enterP2(null);
+    }
+  }
+
+  // === DRUGA POŁOWA ===
+  if (phase === 'second_half') {
+    const p2elapsed = now - phaseSince;
+
+    // +5 min od II połowy: zsynchronizuj minutę
+    if (p2elapsed >= 5 * 60000 && !done.has('p2_sync')) {
+      done.add('p2_sync');
+      const f = await apiFetchLive(home_team, away_team);
+      if (f?.fixture.status.elapsed) {
+        await db('matches').where({ id: matchId }).update({
+          live_minute: f.fixture.status.elapsed, live_minute_at: now,
+        });
+      }
+    }
+
+    // +50 min od II połowy: sprawdź FT
+    if (p2elapsed >= 50 * 60000 && !done.has('ft_check')) {
+      done.add('ft_check');
+      const f = await apiFetchLive(home_team, away_team);
+      const s = f?.fixture.status.short;
+      if (!f || s === 'FT' || s === 'AET' || s === 'PEN') {
+        await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+      }
+    }
+
+    // +55 min od II połowy: wymuś koniec
+    if (p2elapsed >= 55 * 60000 && !done.has('ft_retry')) {
+      done.add('ft_retry');
+      await db('matches').where({ id: matchId }).update({ live_phase: 'done' });
+    }
+  }
+}
+
 async function syncLiveMatches(apiMatches, dbMatches) {
   const live = apiMatches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
   const liveIds = new Set();
@@ -162,6 +304,9 @@ async function syncLiveMatches(apiMatches, dbMatches) {
       });
       updated++;
     }
+
+    // Zarządzaj fazą meczu (minuta, HT, koniec) — max 6 req/mecz do api-football
+    await manageLivePhase(dbRow);
   }
 
   // Mecze które zniknęły z live → reset do scheduled (finished sync je zaraz złapie)
