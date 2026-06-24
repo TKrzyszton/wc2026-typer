@@ -125,9 +125,9 @@ export default function MatchCard({ match, onUpdate }) {
             </div>
           ) : live ? (
             <div className="flex items-center gap-1 text-xl font-black">
-              <span className="text-orange-400">{match.status === 'in_play' ? match.live_home : '?'}</span>
+              <span className="text-orange-400">{match.status === 'in_play' ? match.live_home : 0}</span>
               <span className="text-white/40">:</span>
-              <span className="text-orange-400">{match.status === 'in_play' ? match.live_away : '?'}</span>
+              <span className="text-orange-400">{match.status === 'in_play' ? match.live_away : 0}</span>
             </div>
           ) : (
             <div className="text-wc-gold font-bold text-lg">
