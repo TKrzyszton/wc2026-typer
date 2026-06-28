@@ -124,6 +124,18 @@ router.delete('/users/:id', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// Reset all non-finished TBD knockout slots back to TBD (fixes corrupted bracket)
+router.post('/reset-knockout', adminAuth, async (req, res) => {
+  const { round } = req.body; // optional: 'Runda 32', '1/8 Finału', etc.
+  let q = db('matches').whereNot({ status: 'finished' }).whereNot({ round: 'Faza grupowa' });
+  if (round) q = q.where({ round });
+  const affected = await q.update({
+    home_team: 'TBD', away_team: 'TBD',
+    home_flag: null, away_flag: null,
+  });
+  res.json({ success: true, affected });
+});
+
 router.get('/matches/:id/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('users as u', 'u.id', 'p.user_id')

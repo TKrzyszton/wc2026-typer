@@ -125,17 +125,23 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
   for (const m of knockout) {
     const homePl = toPlName(m.homeTeam.name);
     const awayPl = toPlName(m.awayTeam.name);
-    const apiDate = m.utcDate.slice(0, 10);
+    // API returns UTC; seed stores CEST (+2h) — convert before matching
+    const cestDt = new Date(new Date(m.utcDate).getTime() + 2 * 60 * 60 * 1000);
+    const cestDate = cestDt.toISOString().slice(0, 10);
+    const cestTime = cestDt.toISOString().slice(11, 16);
     const dbRow = dbMatches.find(d =>
       d.home_team === 'TBD' && d.away_team === 'TBD' &&
-      d.match_date === apiDate && d.status !== 'finished'
+      d.match_date === cestDate && d.match_time === cestTime && d.status !== 'finished'
     );
-    if (!dbRow) continue;
+    if (!dbRow) {
+      console.log(`  ⚠️  Brak slotu TBD dla: ${homePl} vs ${awayPl} (CEST ${cestDate} ${cestTime})`);
+      continue;
+    }
     await db('matches').where({ id: dbRow.id }).update({
       home_team: homePl, away_team: awayPl,
       home_flag: toFlag(homePl), away_flag: toFlag(awayPl),
     });
-    console.log(`  ✓ Uzupełniono bracket: ${homePl} vs ${awayPl} (${apiDate})`);
+    console.log(`  ✓ Uzupełniono bracket: ${homePl} vs ${awayPl} (CEST ${cestDate} ${cestTime})`);
     updated++;
   }
   return updated;
