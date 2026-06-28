@@ -2,10 +2,11 @@ import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const bottomNav = [
-  { to: '/dzis',      icon: '🔥', label: 'Dziś' },
-  { to: '/typowanie', icon: '⚽', label: 'Typuj' },
-  { to: '/tabela',    icon: '🏆', label: 'Tabela' },
-  { to: '/zasady',    icon: '📋', label: 'Zasady' },
+  { to: '/dzis',           icon: '🔥', label: 'Dziś' },
+  { to: '/typowanie',      icon: '⚽', label: 'Typuj' },
+  { to: '/tabela',         icon: '🏆', label: 'Tabela' },
+  { to: '/zasady',         icon: '📋', label: 'Zasady' },
+  { to: '/powiadomienia',  icon: '🔔', label: 'Powiadom.' },
 ];
 
 export default function Layout() {
@@ -41,6 +42,10 @@ export default function Layout() {
             <NavLink to="/zasady" className={({ isActive }) =>
               `px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${isActive ? 'bg-wc-gold text-wc-dark' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
               Zasady
+            </NavLink>
+            <NavLink to="/powiadomienia" className={({ isActive }) =>
+              `px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${isActive ? 'bg-wc-gold text-wc-dark' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
+              🔔 Powiadomienia
             </NavLink>
             {user?.is_admin && (
               <NavLink to="/admin" className={({ isActive }) =>

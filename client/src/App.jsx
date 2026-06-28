@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage';
 import RulesPage from './pages/RulesPage';
 import SetPasswordPage from './pages/SetPasswordPage';
 import TodayPage from './pages/TodayPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 function AdminRoute({ children }) {
   const { user } = useAuth();
@@ -35,8 +36,9 @@ export default function App() {
         <Route path="dzis"      element={<TodayPage />} />
         <Route path="typowanie" element={<BettingPage />} />
         <Route path="tabela"    element={<StandingsPage />} />
-        <Route path="zasady"    element={<RulesPage />} />
-        <Route path="admin"     element={<AdminRoute><AdminPage /></AdminRoute>} />
+        <Route path="zasady"          element={<RulesPage />} />
+        <Route path="powiadomienia"   element={<NotificationsPage />} />
+        <Route path="admin"           element={<AdminRoute><AdminPage /></AdminRoute>} />
       </Route>
     </Routes>
   );

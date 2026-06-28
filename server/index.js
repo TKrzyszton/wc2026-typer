@@ -19,7 +19,8 @@ app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/matches',     require('./routes/matches'));
 app.use('/api/predictions', require('./routes/predictions'));
 app.use('/api/standings',   require('./routes/standings'));
-app.use('/api/admin',       require('./routes/admin'));
+app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 if (isProd) {
@@ -65,6 +66,13 @@ async function start() {
     console.log('Auto-sync wyników aktywny (co 1 min)');
   } else {
     console.log('Brak FOOTBALL_API_KEY – wyniki wpisuj ręcznie w panelu Admin.');
+  }
+
+  if (process.env.RESEND_API_KEY) {
+    const cron = require('node-cron');
+    const { sendMatchReminders } = require('./scripts/sendNotifications');
+    cron.schedule('*/15 * * * *', sendMatchReminders);
+    console.log('Powiadomienia email aktywne (co 15 min)');
   }
 }
 

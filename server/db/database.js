@@ -32,6 +32,13 @@ async function initSchema() {
     if (!hasResetCol) {
       await db.schema.table('users', t => t.integer('password_reset_required').defaultTo(0));
     }
+    const hasEmailCol = await db.schema.hasColumn('users', 'email');
+    if (!hasEmailCol) {
+      await db.schema.table('users', t => {
+        t.string('email');
+        t.integer('notify_email').defaultTo(0);
+      });
+    }
   }
 
   const hasMatches = await db.schema.hasTable('matches');
