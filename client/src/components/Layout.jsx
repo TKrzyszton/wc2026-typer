@@ -6,7 +6,7 @@ const bottomNav = [
   { to: '/typowanie',      icon: '⚽', label: 'Typuj' },
   { to: '/tabela',         icon: '🏆', label: 'Tabela' },
   { to: '/zasady',         icon: '📋', label: 'Zasady' },
-  { to: '/powiadomienia',  icon: '🔔', label: 'Powiadom.' },
+  { to: '/powiadomienia',  icon: '🔔', label: 'Alerty' },
 ];
 
 export default function Layout() {
