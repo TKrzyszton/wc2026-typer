@@ -68,7 +68,7 @@ async function start() {
     console.log('Brak FOOTBALL_API_KEY – wyniki wpisuj ręcznie w panelu Admin.');
   }
 
-  if (process.env.RESEND_API_KEY) {
+  if (process.env.NOTIFY_EMAIL_USER && process.env.NOTIFY_EMAIL_PASS) {
     const cron = require('node-cron');
     const { sendMatchReminders } = require('./scripts/sendNotifications');
     cron.schedule('*/15 * * * *', sendMatchReminders);
