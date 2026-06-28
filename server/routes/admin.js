@@ -136,6 +136,11 @@ router.post('/reset-knockout', adminAuth, async (req, res) => {
   res.json({ success: true, affected });
 });
 
+router.delete('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) => {
+  await db('predictions').where({ match_id: req.params.matchId, user_id: req.params.userId }).delete();
+  res.json({ success: true });
+});
+
 router.get('/matches/:id/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('users as u', 'u.id', 'p.user_id')
