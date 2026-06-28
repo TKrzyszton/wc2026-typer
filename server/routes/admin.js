@@ -147,6 +147,15 @@ router.put('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) 
   res.json({ success: true });
 });
 
+router.get('/users/:userId/predictions', adminAuth, async (req, res) => {
+  const preds = await db('predictions as p')
+    .join('matches as m', 'm.id', 'p.match_id')
+    .where('p.user_id', req.params.userId)
+    .select('p.id', 'p.match_id', 'p.home_score', 'p.away_score', 'p.points', 'm.home_team', 'm.away_team', 'm.match_date', 'm.status')
+    .orderBy('m.match_date');
+  res.json(preds);
+});
+
 router.delete('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) => {
   await db('predictions').where({ match_id: req.params.matchId, user_id: req.params.userId }).delete();
   res.json({ success: true });
