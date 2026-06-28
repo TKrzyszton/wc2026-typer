@@ -216,6 +216,43 @@ export default function AdminPage() {
         {champMsg && <p className="text-green-400 text-sm mt-2">{champMsg}</p>}
       </div>
 
+      {/* Knockout bracket reset */}
+      <div className="card mb-6 border-orange-400/20">
+        <h2 className="font-bold text-orange-400 mb-2 flex items-center gap-2">⚠️ Resetuj bracket</h2>
+        <p className="text-xs text-white/40 mb-3">Resetuje wszystkie niezakończone mecze wybranej rundy z powrotem do TBD, żeby sync mógł je ponownie uzupełnić z API.</p>
+        <div className="flex gap-2 flex-wrap">
+          {['Runda 32', '1/8 Finału', 'Ćwierćfinał', 'Półfinał'].map(round => (
+            <button
+              key={round}
+              onClick={async () => {
+                if (!window.confirm(`Zresetować wszystkie TBD w: ${round}?`)) return;
+                try {
+                  const r = await api.post('/admin/reset-knockout', { round });
+                  alert(`Zresetowano ${r.data.affected} meczów w "${round}".`);
+                  loadMatches();
+                } catch (e) { alert('Błąd: ' + (e.response?.data?.error || e.message)); }
+              }}
+              className="text-xs px-3 py-1.5 rounded-full font-semibold bg-orange-900/40 text-orange-300 hover:bg-orange-800/60 border border-orange-400/20"
+            >
+              {round}
+            </button>
+          ))}
+          <button
+            onClick={async () => {
+              if (!window.confirm('Zresetować WSZYSTKIE rundy pucharowe (TBD)?')) return;
+              try {
+                const r = await api.post('/admin/reset-knockout', {});
+                alert(`Zresetowano ${r.data.affected} meczów.`);
+                loadMatches();
+              } catch (e) { alert('Błąd: ' + (e.response?.data?.error || e.message)); }
+            }}
+            className="text-xs px-3 py-1.5 rounded-full font-semibold bg-red-900/40 text-red-300 hover:bg-red-800/60 border border-red-400/20"
+          >
+            Wszystkie rundy
+          </button>
+        </div>
+      </div>
+
       {/* Matches */}
       <div className="mb-4 flex gap-2 flex-wrap">
         <h2 className="font-bold text-lg mr-auto">Wyniki meczów</h2>

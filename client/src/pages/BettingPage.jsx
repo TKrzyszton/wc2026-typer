@@ -128,7 +128,7 @@ export default function BettingPage() {
   const { user } = useAuth();
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
-  const [activeRound, setActiveRound] = useState('Faza grupowa');
+  const [activeRound, setActiveRound] = useState(null);
   const [activeDate, setActiveDate] = useState(null);
   const hasScrolled = useRef(false);
   const dateCarouselRef = useRef(null);
@@ -136,7 +136,23 @@ export default function BettingPage() {
   const load = useCallback(async () => {
     try {
       const { data } = await api.get('/matches');
-      setGrouped(data);
+      setGrouped(prev => {
+        // Auto-select round only on first load (when round not yet set)
+        setActiveRound(cur => {
+          if (cur !== null) return cur;
+          const all = Object.values(data).flat();
+          const now = new Date().toISOString().slice(0, 10);
+          // First match that isn't finished yet, ordered by date
+          const nextMatch = all
+            .filter(m => m.status !== 'finished')
+            .sort((a, b) => a.match_date.localeCompare(b.match_date) || a.match_time.localeCompare(b.match_time))[0];
+          if (nextMatch) return nextMatch.round;
+          // All done — pick last round that has any match
+          const lastMatch = all.sort((a, b) => b.match_date.localeCompare(a.match_date))[0];
+          return lastMatch?.round ?? 'Faza grupowa';
+        });
+        return data;
+      });
     } catch {}
     setLoading(false);
   }, []);
