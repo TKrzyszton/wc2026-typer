@@ -18,8 +18,8 @@ async function sendMatchReminders() {
   const FROM = `"MŚ 2026 Typer" <${process.env.NOTIFY_EMAIL_USER}>`;
 
   const now = new Date();
-  const in60 = new Date(now.getTime() + 60 * 60 * 1000);
-  const in75 = new Date(now.getTime() + 75 * 60 * 1000);
+  const in60 = new Date(now.getTime() + 30 * 60 * 1000);
+  const in75 = new Date(now.getTime() + 45 * 60 * 1000);
 
   const upcoming = await db('matches')
     .where('status', 'scheduled')
