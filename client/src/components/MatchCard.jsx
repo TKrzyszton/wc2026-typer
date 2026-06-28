@@ -17,6 +17,11 @@ function formatTime(dateStr, timeStr) {
   return dt.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 }
 
+function formatShortDate(dateStr) {
+  const dt = new Date(dateStr + 'T12:00:00');
+  return dt.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+}
+
 function isLocked(dateStr, timeStr) {
   const dt = new Date(`${dateStr}T${timeStr}:00+02:00`);
   return Date.now() >= dt.getTime() - 5 * 60 * 1000;
@@ -130,8 +135,15 @@ export default function MatchCard({ match, onUpdate }) {
               <span className="text-orange-400">{match.status === 'in_play' ? match.live_away : 0}</span>
             </div>
           ) : (
-            <div className="text-wc-gold font-bold text-lg">
-              {formatTime(match.match_date, match.match_time)}
+            <div className="flex flex-col items-center">
+              <div className="text-wc-gold font-bold text-lg">
+                {formatTime(match.match_date, match.match_time)}
+              </div>
+              {isKnockout && (
+                <div className="text-xs text-white/35 -mt-0.5">
+                  {formatShortDate(match.match_date)}
+                </div>
+              )}
             </div>
           )}
           {live && (
