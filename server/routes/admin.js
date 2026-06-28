@@ -136,6 +136,17 @@ router.post('/reset-knockout', adminAuth, async (req, res) => {
   res.json({ success: true, affected });
 });
 
+router.put('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) => {
+  const { home_score, away_score, predict_penalties } = req.body;
+  const existing = await db('predictions').where({ match_id: req.params.matchId, user_id: req.params.userId }).first();
+  if (existing) {
+    await db('predictions').where({ id: existing.id }).update({ home_score, away_score, predict_penalties: predict_penalties ? 1 : 0, updated_at: new Date().toISOString() });
+  } else {
+    await db('predictions').insert({ match_id: req.params.matchId, user_id: req.params.userId, home_score, away_score, predict_penalties: predict_penalties ? 1 : 0 });
+  }
+  res.json({ success: true });
+});
+
 router.delete('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) => {
   await db('predictions').where({ match_id: req.params.matchId, user_id: req.params.userId }).delete();
   res.json({ success: true });
