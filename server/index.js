@@ -22,6 +22,7 @@ app.use('/api/standings',   require('./routes/standings'));
 app.use('/api/admin',         require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.post('/api/sw-ping', (_req, res) => { console.log('🟢 [SW-PING] Service Worker odebrał push event!'); res.json({ ok: true }); });
 
 if (isProd) {
   const distPath = path.join(__dirname, '..', 'client', 'dist');
