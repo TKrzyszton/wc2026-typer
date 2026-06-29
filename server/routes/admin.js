@@ -154,6 +154,11 @@ router.post('/test-notifications', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/users/:userId/push-subs', adminAuth, async (req, res) => {
+  const subs = await db('push_subscriptions').where({ user_id: req.params.userId });
+  res.json({ count: subs.length, subs: subs.map(s => ({ id: s.id, created_at: s.created_at })) });
+});
+
 router.get('/users/:userId/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('matches as m', 'm.id', 'p.match_id')
