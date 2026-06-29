@@ -147,6 +147,13 @@ router.put('/matches/:matchId/predictions/:userId', adminAuth, async (req, res) 
   res.json({ success: true });
 });
 
+router.post('/test-notifications', adminAuth, async (req, res) => {
+  const { sendMatchReminders } = require('../scripts/sendNotifications');
+  const minutesUntilKickoff = req.body.minutesUntilKickoff || 600;
+  await sendMatchReminders({ windowMinFrom: minutesUntilKickoff - 5, windowMinTo: minutesUntilKickoff + 15 });
+  res.json({ success: true });
+});
+
 router.get('/users/:userId/predictions', adminAuth, async (req, res) => {
   const preds = await db('predictions as p')
     .join('matches as m', 'm.id', 'p.match_id')

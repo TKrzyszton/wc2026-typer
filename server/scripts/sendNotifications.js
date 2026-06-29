@@ -11,15 +11,15 @@ function createTransport() {
   });
 }
 
-async function sendMatchReminders() {
+async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {}) {
   if (!process.env.NOTIFY_EMAIL_USER || !process.env.NOTIFY_EMAIL_PASS) return;
 
   const APP_URL = process.env.APP_URL || 'https://typer-ms2026.up.railway.app';
   const FROM = `"MŚ 2026 Typer" <${process.env.NOTIFY_EMAIL_USER}>`;
 
   const now = new Date();
-  const in60 = new Date(now.getTime() + 30 * 60 * 1000);
-  const in75 = new Date(now.getTime() + 45 * 60 * 1000);
+  const in60 = new Date(now.getTime() + windowMinFrom * 60 * 1000);
+  const in75 = new Date(now.getTime() + windowMinTo * 60 * 1000);
 
   const upcoming = await db('matches')
     .where('status', 'scheduled')
