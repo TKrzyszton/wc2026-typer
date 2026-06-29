@@ -14,12 +14,12 @@ async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP
     const subs = await db('push_subscriptions').where({ user_id: user.id });
     for (const row of subs) {
       try {
-        await webpush.sendNotification(JSON.parse(row.subscription), JSON.stringify({
+        const result = await webpush.sendNotification(JSON.parse(row.subscription), JSON.stringify({
           title: `⚽ Nie obstawiłeś meczu!`,
           body: `${match.home_team} vs ${match.away_team} — dziś o ${kickoffFormatted}`,
           url: `${APP_URL}/typowanie`,
         }));
-        console.log(`  🔔 Push do ${user.username}`);
+        console.log(`  🔔 Push do ${user.username} — status: ${result.statusCode}`);
       } catch (e) {
         if (e.statusCode === 410) {
           console.log(`  🔔 Subskrypcja wygasła dla ${user.username} — usuwam`);
