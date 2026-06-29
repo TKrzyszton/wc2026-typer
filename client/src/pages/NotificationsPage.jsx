@@ -97,6 +97,8 @@ export default function NotificationsPage() {
 
   const registerSW = async () => {
     if (!('serviceWorker' in navigator)) return null;
+    const existing = await navigator.serviceWorker.getRegistrations();
+    for (const r of existing) await r.unregister();
     const reg = await navigator.serviceWorker.register('/sw.js');
     await navigator.serviceWorker.ready;
     return reg;
