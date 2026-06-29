@@ -23,6 +23,7 @@ async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {})
     return kickoff >= windowStart && kickoff <= windowEnd;
   });
 
+  console.log(`  ✉️  [notifications] window: ${windowMinFrom}-${windowMinTo} min | targetMatches: ${targetMatches.length} | upcoming: ${upcoming.length}`);
   if (targetMatches.length === 0) return;
 
   const NOTIFY_WHITELIST = process.env.NOTIFY_WHITELIST
