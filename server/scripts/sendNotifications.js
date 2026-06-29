@@ -21,8 +21,12 @@ async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP
         }));
         console.log(`  🔔 Push do ${user.username}`);
       } catch (e) {
-        if (e.statusCode === 410) await db('push_subscriptions').where({ id: row.id }).delete();
-        else console.error(`  🔔 Błąd push do ${user.username}:`, e.message);
+        if (e.statusCode === 410) {
+          console.log(`  🔔 Subskrypcja wygasła dla ${user.username} — usuwam`);
+          await db('push_subscriptions').where({ id: row.id }).delete();
+        } else {
+          console.error(`  🔔 Błąd push do ${user.username}: status=${e.statusCode} body=${JSON.stringify(e.body)} msg=${e.message}`);
+        }
       }
     }
   }
