@@ -1,7 +1,7 @@
 const { db } = require('../db/database');
 const axios = require('axios');
 
-async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {}) {
+async function sendMatchReminders({ windowMinFrom = 60, windowMinTo = 75 } = {}) {
   if (!process.env.BREVO_API_KEY) return;
 
   const APP_URL = process.env.APP_URL || 'https://typer-ms2026.up.railway.app';
