@@ -1,8 +1,36 @@
 const { db } = require('../db/database');
 const axios = require('axios');
+const webpush = require('web-push');
+
+async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL) {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+  webpush.setVapidDetails(
+    `mailto:${process.env.NOTIFY_FROM_EMAIL || 'admin@typer.pl'}`,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
+  for (const user of usersToNotify) {
+    const subs = await db('push_subscriptions').where({ user_id: user.id });
+    for (const row of subs) {
+      try {
+        await webpush.sendNotification(JSON.parse(row.subscription), JSON.stringify({
+          title: `⚽ Nie obstawiłeś meczu!`,
+          body: `${match.home_team} vs ${match.away_team} — dziś o ${kickoffFormatted}`,
+          url: `${APP_URL}/typowanie`,
+        }));
+        console.log(`  🔔 Push do ${user.username}`);
+      } catch (e) {
+        if (e.statusCode === 410) await db('push_subscriptions').where({ id: row.id }).delete();
+        else console.error(`  🔔 Błąd push do ${user.username}:`, e.message);
+      }
+    }
+  }
+}
 
 async function sendMatchReminders({ windowMinFrom = 60, windowMinTo = 75 } = {}) {
-  if (!process.env.BREVO_API_KEY) return;
+  const hasEmail = !!process.env.BREVO_API_KEY;
+  const hasPush = !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+  if (!hasEmail && !hasPush) return;
 
   const APP_URL = process.env.APP_URL || 'https://typer-ms2026.up.railway.app';
   const FROM_EMAIL = process.env.NOTIFY_FROM_EMAIL || 'jagertyper@gmail.com';
@@ -41,7 +69,9 @@ async function sendMatchReminders({ windowMinFrom = 60, windowMinTo = 75 } = {})
     const kickoffFormatted = new Date(`${match.match_date}T${match.match_time}:00+02:00`)
       .toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 
-    for (const user of usersToNotify) {
+    await sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL);
+
+    for (const user of usersToNotify.filter(u => u.email)) {
       try {
         await axios.post('https://api.brevo.com/v3/smtp/email', {
           sender: { name: FROM_NAME, email: FROM_EMAIL },

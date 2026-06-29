@@ -90,6 +90,16 @@ async function initSchema() {
     }
   }
 
+  const hasPushSubs = await db.schema.hasTable('push_subscriptions');
+  if (!hasPushSubs) {
+    await db.schema.createTable('push_subscriptions', t => {
+      t.increments('id');
+      t.integer('user_id').notNullable().references('id').inTable('users');
+      t.text('subscription').notNullable();
+      t.timestamp('created_at').defaultTo(db.fn.now());
+    });
+  }
+
   const hasPred = await db.schema.hasTable('predictions');
   if (!hasPred) {
     await db.schema.createTable('predictions', t => {

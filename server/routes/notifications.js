@@ -20,4 +20,21 @@ router.post('/settings', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/vapid-public-key', (req, res) => {
+  res.json({ key: process.env.VAPID_PUBLIC_KEY || '' });
+});
+
+router.post('/push-subscribe', auth, async (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription) return res.status(400).json({ error: 'Brak subskrypcji' });
+  await db('push_subscriptions').where({ user_id: req.user.id }).delete();
+  await db('push_subscriptions').insert({ user_id: req.user.id, subscription: JSON.stringify(subscription) });
+  res.json({ success: true });
+});
+
+router.delete('/push-subscribe', auth, async (req, res) => {
+  await db('push_subscriptions').where({ user_id: req.user.id }).delete();
+  res.json({ success: true });
+});
+
 module.exports = router;
