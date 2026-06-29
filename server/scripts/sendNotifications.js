@@ -2,14 +2,15 @@ const { db } = require('../db/database');
 const axios = require('axios');
 const webpush = require('web-push');
 
-async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL) {
+async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL, whitelist) {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
   webpush.setVapidDetails(
     `mailto:${process.env.NOTIFY_FROM_EMAIL || 'admin@typer.pl'}`,
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY,
   );
-  for (const user of usersToNotify) {
+  const filtered = whitelist ? usersToNotify.filter(u => whitelist.includes(u.username)) : usersToNotify;
+  for (const user of filtered) {
     const subs = await db('push_subscriptions').where({ user_id: user.id });
     for (const row of subs) {
       try {
@@ -69,7 +70,7 @@ async function sendMatchReminders({ windowMinFrom = 60, windowMinTo = 75 } = {})
     const kickoffFormatted = new Date(`${match.match_date}T${match.match_time}:00+02:00`)
       .toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 
-    await sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL);
+    await sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL, NOTIFY_WHITELIST);
 
     for (const user of usersToNotify.filter(u => u.email)) {
       try {
