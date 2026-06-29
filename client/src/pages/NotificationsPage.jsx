@@ -132,9 +132,11 @@ export default function NotificationsPage() {
   const unsubscribePush = async () => {
     setPushSaving(true); setPushMsg('');
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) await sub.unsubscribe();
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) await sub.unsubscribe();
+      } catch (_) {}
       await api.delete('/notifications/push-subscribe');
       setPushStatus('unsubscribed');
     } catch (e) {
