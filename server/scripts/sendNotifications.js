@@ -18,7 +18,10 @@ async function sendPushNotifications(usersToNotify, match, kickoffFormatted, APP
           title: `⚽ Nie obstawiłeś meczu!`,
           body: `${match.home_team} vs ${match.away_team} — dziś o ${kickoffFormatted}`,
           url: `${APP_URL}/typowanie`,
-        }));
+        }), {
+          urgency: 'high',
+          TTL: 3600,
+        });
         console.log(`  🔔 Push do ${user.username} — status: ${result.statusCode}`);
       } catch (e) {
         if (e.statusCode === 410) {
