@@ -106,18 +106,24 @@ export default function NotificationsPage() {
     setPushSaving(true); setPushMsg('');
     try {
       const vapidKey = await getVapidKey();
-      if (!vapidKey) { setPushMsg('Brak klucza VAPID — skontaktuj się z adminem.'); return; }
+      if (!vapidKey) { setPushMsg('Brak klucza VAPID.'); setPushSaving(false); return; }
+      setPushMsg('Rejestruję service worker…');
       const reg = await registerSW();
+      if (!reg) { setPushMsg('Błąd rejestracji SW.'); setPushSaving(false); return; }
+      setPushMsg('Proszę o zgodę…');
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') { setPushStatus('denied'); setPushMsg('Powiadomienia zablokowane — zmień w ustawieniach telefonu.'); return; }
+      if (perm !== 'granted') { setPushStatus('denied'); setPushMsg('Powiadomienia zablokowane — zmień w ustawieniach telefonu.'); setPushSaving(false); return; }
+      setPushMsg('Tworzę subskrypcję…');
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
+      setPushMsg('Zapisuję…');
       await api.post('/notifications/push-subscribe', { subscription: sub.toJSON() });
       setPushStatus('subscribed');
+      setPushMsg('');
     } catch (e) {
-      setPushMsg('Błąd: ' + e.message);
+      setPushMsg('Błąd: ' + (e.message || String(e)));
     } finally { setPushSaving(false); }
   };
 

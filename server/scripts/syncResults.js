@@ -134,7 +134,7 @@ async function syncKnockoutTeams(apiMatches, dbMatches) {
       d.match_date === cestDate && d.match_time === cestTime && d.status !== 'finished'
     );
     if (!dbRow) {
-      console.log(`  ⚠️  Brak slotu TBD dla: ${homePl} vs ${awayPl} (CEST ${cestDate} ${cestTime})`);
+      // slot already filled or date mismatch — skip silently
       continue;
     }
     await db('matches').where({ id: dbRow.id }).update({
