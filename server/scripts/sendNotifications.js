@@ -1,25 +1,16 @@
 const { db } = require('../db/database');
-const nodemailer = require('nodemailer');
-
-function createTransport() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.NOTIFY_EMAIL_USER,
-      pass: process.env.NOTIFY_EMAIL_PASS,
-    },
-  });
-}
+const axios = require('axios');
 
 async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {}) {
-  if (!process.env.NOTIFY_EMAIL_USER || !process.env.NOTIFY_EMAIL_PASS) return;
+  if (!process.env.BREVO_API_KEY) return;
 
   const APP_URL = process.env.APP_URL || 'https://typer-ms2026.up.railway.app';
-  const FROM = `"MŚ 2026 Typer" <${process.env.NOTIFY_EMAIL_USER}>`;
+  const FROM_EMAIL = process.env.NOTIFY_FROM_EMAIL || 'jagertyper@gmail.com';
+  const FROM_NAME = 'MŚ 2026 Typer';
 
   const now = new Date();
-  const in60 = new Date(now.getTime() + windowMinFrom * 60 * 1000);
-  const in75 = new Date(now.getTime() + windowMinTo * 60 * 1000);
+  const windowStart = new Date(now.getTime() + windowMinFrom * 60 * 1000);
+  const windowEnd = new Date(now.getTime() + windowMinTo * 60 * 1000);
 
   const upcoming = await db('matches')
     .where('status', 'scheduled')
@@ -29,18 +20,16 @@ async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {})
 
   const targetMatches = upcoming.filter(m => {
     const kickoff = new Date(`${m.match_date}T${m.match_time}:00+02:00`);
-    return kickoff >= in60 && kickoff <= in75;
+    return kickoff >= windowStart && kickoff <= windowEnd;
   });
 
   if (targetMatches.length === 0) return;
 
-  const transporter = createTransport();
+  const NOTIFY_WHITELIST = process.env.NOTIFY_WHITELIST
+    ? process.env.NOTIFY_WHITELIST.split(',').map(s => s.trim())
+    : null;
 
   for (const match of targetMatches) {
-    const NOTIFY_WHITELIST = process.env.NOTIFY_WHITELIST
-      ? process.env.NOTIFY_WHITELIST.split(',').map(s => s.trim())
-      : null;
-
     let q = db('users as u')
       .where('u.notify_email', 1)
       .whereNotNull('u.email')
@@ -53,11 +42,11 @@ async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {})
 
     for (const user of usersToNotify) {
       try {
-        await transporter.sendMail({
-          from: FROM,
-          to: user.email,
+        await axios.post('https://api.brevo.com/v3/smtp/email', {
+          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          to: [{ email: user.email }],
           subject: `⚽ Nie obstawiłeś: ${match.home_team} vs ${match.away_team}`,
-          html: `
+          htmlContent: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
               <h2 style="color:#d4af37;margin:0 0 8px;">⚽ MŚ 2026 Typer</h2>
               <p style="color:#666;margin:0 0 24px;font-size:14px;">Przypomnienie o nieobstawionym meczu</p>
@@ -77,14 +66,16 @@ async function sendMatchReminders({ windowMinFrom = 30, windowMinTo = 45 } = {})
                 Obstaw teraz
               </a>
               <p style="color:#aaa;font-size:12px;margin:20px 0 0;text-align:center;">
-                Żeby wyłączyć powiadomienia wejdź w zakładkę Powiadomienia w aplikacji.
+                Żeby wyłączyć powiadomienia wejdź w zakładkę Alerty w aplikacji.
               </p>
             </div>
           `,
+        }, {
+          headers: { 'api-key': process.env.BREVO_API_KEY },
         });
         console.log(`  ✉️  Wysłano reminder do ${user.username} (${user.email}) — ${match.home_team} vs ${match.away_team}`);
       } catch (e) {
-        console.error(`  ✉️  Błąd wysyłki do ${user.email}:`, e.message);
+        console.error(`  ✉️  Błąd wysyłki do ${user.email}:`, e.response?.data || e.message);
       }
     }
   }
