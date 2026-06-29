@@ -60,19 +60,28 @@ async function sendMatchReminders({ windowMinFrom = 60, windowMinTo = 75 } = {})
     : null;
 
   for (const match of targetMatches) {
-    let q = db('users as u')
+    const notPredicted = db('predictions').where('match_id', match.id).select('user_id');
+
+    // Push — wszyscy userzy z subskrypcją push, bez wymogu email
+    let pushQ = db('users as u')
+      .whereNotIn('u.id', notPredicted);
+    if (NOTIFY_WHITELIST) pushQ = pushQ.whereIn('u.username', NOTIFY_WHITELIST);
+    const pushUsers = await pushQ.select('u.id', 'u.username');
+
+    // Email — tylko userzy z notify_email=1 i ustawionym emailem
+    let emailQ = db('users as u')
       .where('u.notify_email', 1)
       .whereNotNull('u.email')
-      .whereNotIn('u.id', db('predictions').where('match_id', match.id).select('user_id'));
-    if (NOTIFY_WHITELIST) q = q.whereIn('u.username', NOTIFY_WHITELIST);
-    const usersToNotify = await q.select('u.id', 'u.username', 'u.email');
+      .whereNotIn('u.id', notPredicted);
+    if (NOTIFY_WHITELIST) emailQ = emailQ.whereIn('u.username', NOTIFY_WHITELIST);
+    const emailUsers = await emailQ.select('u.id', 'u.username', 'u.email');
 
     const kickoffFormatted = new Date(`${match.match_date}T${match.match_time}:00+02:00`)
       .toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' });
 
-    await sendPushNotifications(usersToNotify, match, kickoffFormatted, APP_URL, NOTIFY_WHITELIST);
+    await sendPushNotifications(pushUsers, match, kickoffFormatted, APP_URL, NOTIFY_WHITELIST);
 
-    for (const user of usersToNotify.filter(u => u.email)) {
+    for (const user of emailUsers) {
       try {
         await axios.post('https://api.brevo.com/v3/smtp/email', {
           sender: { name: FROM_NAME, email: FROM_EMAIL },
