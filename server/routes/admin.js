@@ -154,6 +154,34 @@ router.post('/test-notifications', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.post('/test-push/:userId', adminAuth, async (req, res) => {
+  const webpush = require('web-push');
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return res.status(500).json({ error: 'Brak VAPID keys' });
+  webpush.setVapidDetails(
+    `mailto:${process.env.NOTIFY_FROM_EMAIL || 'admin@typer.pl'}`,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
+  const subs = await db('push_subscriptions').where({ user_id: req.params.userId });
+  if (!subs.length) return res.status(404).json({ error: 'Brak subskrypcji dla tego usera' });
+  const results = [];
+  for (const row of subs) {
+    try {
+      const r = await webpush.sendNotification(JSON.parse(row.subscription), JSON.stringify({
+        title: '⚽ Test powiadomienia',
+        body: 'Jeśli to widzisz — push działa!',
+        url: '/typowanie',
+      }), { urgency: 'high', TTL: 3600 });
+      console.log(`  🔔 [test-push] Push do userId=${req.params.userId} — status: ${r.statusCode}`);
+      results.push({ id: row.id, status: r.statusCode });
+    } catch (e) {
+      console.error(`  🔔 [test-push] Błąd: status=${e.statusCode} body=${JSON.stringify(e.body)}`);
+      results.push({ id: row.id, error: e.statusCode, body: e.body });
+    }
+  }
+  res.json({ results });
+});
+
 router.get('/users/:userId/push-subs', adminAuth, async (req, res) => {
   const subs = await db('push_subscriptions').where({ user_id: req.params.userId });
   res.json({ count: subs.length, subs: subs.map(s => ({ id: s.id, created_at: s.created_at, endpoint: JSON.parse(s.subscription).endpoint })) });
