@@ -191,9 +191,10 @@ router.post('/test-push/:userId', adminAuth, async (req, res) => {
         body: 'Jeśli to widzisz — push działa!',
         url: '/typowanie',
       });
-      const r = await webpush.sendNotification(JSON.parse(row.subscription), payload, { urgency: 'high', TTL: 3600 });
-      console.log(`  🔔 [test-push] Push do userId=${req.params.userId} — status: ${r.statusCode}`);
-      results.push({ id: row.id, status: r.statusCode });
+      const opts = req.query.plain === '1' ? {} : { urgency: 'high', TTL: 3600 };
+      const r = await webpush.sendNotification(JSON.parse(row.subscription), payload, opts);
+      console.log(`  🔔 [test-push] Push do userId=${req.params.userId} — status: ${r.statusCode} | headers: ${JSON.stringify(r.headers)}`);
+      results.push({ id: row.id, status: r.statusCode, headers: r.headers });
     } catch (e) {
       console.error(`  🔔 [test-push] Błąd: status=${e.statusCode} body=${JSON.stringify(e.body)}`);
       results.push({ id: row.id, error: e.statusCode, body: e.body });
