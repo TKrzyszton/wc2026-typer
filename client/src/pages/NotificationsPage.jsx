@@ -92,7 +92,11 @@ export default function NotificationsPage() {
     navigator.serviceWorker.ready.then(reg => {
       reg.pushManager.getSubscription().then(sub => {
         setPushStatus(sub ? 'subscribed' : 'unsubscribed');
-        if (sub) setEndpointTail(sub.endpoint.slice(-10));
+        if (sub) {
+          setEndpointTail(sub.endpoint.slice(-10));
+          // Re-sync device subscription with server — DB may hold a stale one
+          api.post('/notifications/push-subscribe', { subscription: sub.toJSON() }).catch(() => {});
+        }
       });
     });
   }, [user]);
