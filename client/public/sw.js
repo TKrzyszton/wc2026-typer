@@ -1,16 +1,16 @@
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch (e) {}
-  event.waitUntil(
-    fetch('/api/sw-ping', { method: 'POST' }).catch(() => {}).then(() =>
-      self.registration.showNotification(data.title || '⚽ MŚ 2026 Typer', {
-        body: data.body || 'Masz nieobstawiony mecz!',
-        icon: '/pwa-192.png',
-        badge: '/pwa-192.png',
-        data: { url: data.url || '/' },
-      })
-    )
-  );
+  // showNotification MUST run immediately — iOS revokes delivery after silent pushes
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(data.title || '⚽ MŚ 2026 Typer', {
+      body: data.body || 'Masz nieobstawiony mecz!',
+      icon: '/pwa-192.png',
+      badge: '/pwa-192.png',
+      data: { url: data.url || '/' },
+    }),
+    fetch('/api/sw-ping', { method: 'POST' }).catch(() => {}),
+  ]));
 });
 
 self.addEventListener('notificationclick', event => {
