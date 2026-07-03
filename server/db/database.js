@@ -90,6 +90,14 @@ async function initSchema() {
     }
   }
 
+  const hasPenaltyCols = await db.schema.hasColumn('matches', 'home_penalties');
+  if (!hasPenaltyCols) {
+    await db.schema.table('matches', t => {
+      t.integer('home_penalties');
+      t.integer('away_penalties');
+    });
+  }
+
   const hasPushSubs = await db.schema.hasTable('push_subscriptions');
   if (!hasPushSubs) {
     await db.schema.createTable('push_subscriptions', t => {

@@ -70,10 +70,12 @@ async function fetchAllMatches() {
   return resp.data.matches || [];
 }
 
-async function applyFinishedMatch(dbRow, hs, as_, pen) {
+async function applyFinishedMatch(dbRow, hs, as_, pen, penHome, penAway) {
   await db('matches').where({ id: dbRow.id }).update({
     home_score: hs, away_score: as_,
     ended_with_penalties: pen ? 1 : 0,
+    home_penalties: penHome ?? null,
+    away_penalties: penAway ?? null,
     status: 'finished',
     live_home: null, live_away: null, live_minute: null,
   });
@@ -97,8 +99,9 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
     const as_ = (isKnockout && hasExtraTime) ? m.score.extraTime.away : m.score.fullTime.away;
     if (hs === null || hs === undefined) continue;
 
-    const pen = m.score.penalties != null &&
-      (m.score.penalties.home !== null || m.score.penalties.away !== null);
+    const penHome = m.score.penalties?.home ?? null;
+    const penAway = m.score.penalties?.away ?? null;
+    const pen = penHome !== null || penAway !== null;
 
     const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
     if (!dbRow) { console.log(`  [WARN] Nie znaleziono: ${m.homeTeam.name} vs ${m.awayTeam.name}`); continue; }
@@ -106,7 +109,7 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
     // Aktualizuj jeśli jeszcze nie finished LUB jeśli wynik się różni (korekta błędnych danych)
     if (dbRow.status === 'finished' && dbRow.home_score === hs && dbRow.away_score === as_) continue;
 
-    await applyFinishedMatch(dbRow, hs, as_, pen);
+    await applyFinishedMatch(dbRow, hs, as_, pen, penHome, penAway);
     console.log(`  ✓ ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}${pen ? ' (k)' : ''}`);
     updated++;
   }
