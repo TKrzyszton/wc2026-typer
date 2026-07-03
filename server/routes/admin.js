@@ -154,6 +154,24 @@ router.post('/test-notifications', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/vapid-check', adminAuth, (req, res) => {
+  const pub = process.env.VAPID_PUBLIC_KEY || '';
+  const priv = process.env.VAPID_PRIVATE_KEY || '';
+  if (!pub || !priv) return res.json({ ok: false, error: 'Brak kluczy w env' });
+  try {
+    const crypto = require('crypto');
+    const b64uToBuf = s => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+    const ecdh = crypto.createECDH('prime256v1');
+    ecdh.setPrivateKey(b64uToBuf(priv));
+    const derivedPub = ecdh.getPublicKey();
+    const match = derivedPub.equals(b64uToBuf(pub));
+    res.json({ ok: match, pubLen: b64uToBuf(pub).length, privLen: b64uToBuf(priv).length,
+      hasWhitespace: pub !== pub.trim() || priv !== priv.trim() });
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
+
 router.post('/test-push/:userId', adminAuth, async (req, res) => {
   const webpush = require('web-push');
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return res.status(500).json({ error: 'Brak VAPID keys' });
