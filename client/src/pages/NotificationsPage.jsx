@@ -93,7 +93,21 @@ export default function NotificationsPage() {
       reg.pushManager.getSubscription().then(sub => {
         setPushStatus(sub ? 'subscribed' : 'unsubscribed');
         if (sub) {
-          setEndpointTail(sub.endpoint.slice(-10));
+          // Verify subscription is bound to the server's current VAPID key
+          let keyInfo = '';
+          try {
+            const rawKey = sub.options?.applicationServerKey;
+            if (rawKey) {
+              const subKey = btoa(String.fromCharCode(...new Uint8Array(rawKey)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+              getVapidKey().then(serverKey => {
+                setEndpointTail(sub.endpoint.slice(-10) + (subKey === serverKey ? ' | klucz OK' : ' | KLUCZ NIEZGODNY!'));
+              });
+            } else {
+              keyInfo = ' | klucz nieznany';
+            }
+          } catch (_) {}
+          setEndpointTail(sub.endpoint.slice(-10) + keyInfo);
           // Re-sync device subscription with server — DB may hold a stale one
           api.post('/notifications/push-subscribe', { subscription: sub.toJSON() }).catch(() => {});
         }
