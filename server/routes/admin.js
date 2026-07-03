@@ -165,13 +165,15 @@ router.post('/test-push/:userId', adminAuth, async (req, res) => {
   const subs = await db('push_subscriptions').where({ user_id: req.params.userId });
   if (!subs.length) return res.status(404).json({ error: 'Brak subskrypcji dla tego usera' });
   const results = [];
+  const noPayload = req.query.empty === '1';
   for (const row of subs) {
     try {
-      const r = await webpush.sendNotification(JSON.parse(row.subscription), JSON.stringify({
+      const payload = noPayload ? undefined : JSON.stringify({
         title: '⚽ Test powiadomienia',
         body: 'Jeśli to widzisz — push działa!',
         url: '/typowanie',
-      }), { urgency: 'high', TTL: 3600 });
+      });
+      const r = await webpush.sendNotification(JSON.parse(row.subscription), payload, { urgency: 'high', TTL: 3600 });
       console.log(`  🔔 [test-push] Push do userId=${req.params.userId} — status: ${r.statusCode}`);
       results.push({ id: row.id, status: r.statusCode });
     } catch (e) {
