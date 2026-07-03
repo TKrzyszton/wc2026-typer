@@ -13,6 +13,17 @@ function calculatePoints(match, prediction) {
   if (predict_penalties && ended_with_penalties) return { points: 5, reason: 'penalties_correct' };
   if (predict_penalties && !ended_with_penalties) return { points: 0, reason: 'penalties_wrong' };
 
+  // Match ended with penalties — check if prediction picked the correct winner
+  if (ended_with_penalties) {
+    const { home_penalties, away_penalties } = match;
+    if (home_penalties !== null && away_penalties !== null) {
+      const penWinner = Math.sign(home_penalties - away_penalties); // 1=home won, -1=away won
+      const predResult = Math.sign(predHome - predAway);
+      if (predResult === penWinner) return { points: 1, reason: 'correct_winner' };
+      return { points: 0, reason: 'wrong_result' };
+    }
+  }
+
   const actualDiff = actualHome - actualAway;
   const predDiff = predHome - predAway;
   const actualResult = Math.sign(actualDiff); // -1, 0, 1
@@ -24,7 +35,6 @@ function calculatePoints(match, prediction) {
   // Draw cases
   if (actualResult === 0) {
     if (predResult !== 0) return { points: 0, reason: 'wrong_result' };
-    // Both drew: check goal difference from correct draw
     const diff = Math.abs(predHome - actualHome);
     if (diff <= 1) return { points: 2, reason: 'draw_close' };
     return { points: 1, reason: 'draw_winner' };
