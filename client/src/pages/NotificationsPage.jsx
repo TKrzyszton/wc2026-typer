@@ -70,6 +70,7 @@ export default function NotificationsPage() {
   const [pushStatus, setPushStatus] = useState('unknown'); // unknown | unsupported | denied | subscribed | unsubscribed
   const [pushSaving, setPushSaving] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
+  const [endpointTail, setEndpointTail] = useState('');
 
   const os = detectOS();
   const standalone = isInStandaloneMode();
@@ -91,6 +92,7 @@ export default function NotificationsPage() {
     navigator.serviceWorker.ready.then(reg => {
       reg.pushManager.getSubscription().then(sub => {
         setPushStatus(sub ? 'subscribed' : 'unsubscribed');
+        if (sub) setEndpointTail(sub.endpoint.slice(-10));
       });
     });
   }, [user]);
@@ -239,6 +241,9 @@ export default function NotificationsPage() {
         )}
 
         {pushMsg && <p className="text-sm text-red-400 mt-2">{pushMsg}</p>}
+        {pushStatus === 'subscribed' && endpointTail && (
+          <p className="text-xs text-white/20 mt-2">id: …{endpointTail}</p>
+        )}
       </div>
 
       {/* Email notifications */}
