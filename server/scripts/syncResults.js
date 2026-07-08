@@ -117,8 +117,9 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
     const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
     if (!dbRow) { console.log(`  [WARN] Nie znaleziono: ${m.homeTeam.name} vs ${m.awayTeam.name}`); continue; }
 
-    // Aktualizuj jeśli jeszcze nie finished LUB jeśli wynik się różni (korekta błędnych danych)
-    if (dbRow.status === 'finished' && dbRow.home_score === hs && dbRow.away_score === as_) continue;
+    // Aktualizuj jeśli jeszcze nie finished LUB wynik/karne się różnią (korekta błędnych danych)
+    if (dbRow.status === 'finished' && dbRow.home_score === hs && dbRow.away_score === as_ &&
+        !!dbRow.ended_with_penalties === pen && dbRow.home_penalties === penHome && dbRow.away_penalties === penAway) continue;
 
     await applyFinishedMatch(dbRow, hs, as_, pen, penHome, penAway);
     console.log(`  ✓ ${toPlName(m.homeTeam.name)} ${hs}:${as_} ${toPlName(m.awayTeam.name)}${pen ? ' (k)' : ''}`);
