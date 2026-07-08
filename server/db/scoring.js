@@ -7,11 +7,12 @@ function calculatePoints(match, prediction) {
   const { home_score: predHome, away_score: predAway, predict_penalties } = prediction;
 
   if (actualHome === null || actualAway === null) return { points: null, reason: 'not_finished' };
-  if (predHome === null || predAway === null) return { points: 0, reason: 'no_prediction' };
 
-  // Penalty shootout prediction in knockout rounds
+  // Penalty shootout prediction — check BEFORE no_prediction (penalty bets have null scores)
   if (predict_penalties && ended_with_penalties) return { points: 5, reason: 'penalties_correct' };
   if (predict_penalties && !ended_with_penalties) return { points: 0, reason: 'penalties_wrong' };
+
+  if (predHome === null || predAway === null) return { points: 0, reason: 'no_prediction' };
 
   // Match ended with penalties — check if prediction picked the correct winner
   if (ended_with_penalties) {

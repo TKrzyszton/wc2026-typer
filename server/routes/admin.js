@@ -154,6 +154,20 @@ router.post('/test-notifications', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.post('/recalc/:matchId', adminAuth, async (req, res) => {
+  const { calculatePoints } = require('../db/scoring');
+  const match = await db('matches').where({ id: req.params.matchId }).first();
+  if (!match) return res.status(404).json({ error: 'Brak meczu' });
+  const predictions = await db('predictions').where({ match_id: match.id });
+  const out = [];
+  for (const pred of predictions) {
+    const { points, reason } = calculatePoints(match, pred);
+    await db('predictions').where({ id: pred.id }).update({ points });
+    out.push({ user_id: pred.user_id, points, reason });
+  }
+  res.json({ recalculated: out.length, results: out });
+});
+
 router.get('/api-match', adminAuth, async (req, res) => {
   const axios = require('axios');
   try {
