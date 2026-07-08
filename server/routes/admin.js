@@ -154,6 +154,22 @@ router.post('/test-notifications', adminAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+router.get('/api-match', adminAuth, async (req, res) => {
+  const axios = require('axios');
+  try {
+    const resp = await axios.get('https://api.football-data.org/v4/competitions/WC/matches', {
+      headers: { 'X-Auth-Token': process.env.FOOTBALL_API_KEY },
+    });
+    const q = (req.query.team || '').toLowerCase();
+    const found = resp.data.matches.filter(m =>
+      m.homeTeam?.name?.toLowerCase().includes(q) || m.awayTeam?.name?.toLowerCase().includes(q)
+    );
+    res.json(found.map(m => ({ home: m.homeTeam.name, away: m.awayTeam.name, utcDate: m.utcDate, status: m.status, stage: m.stage, score: m.score })));
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+});
+
 router.get('/vapid-check', adminAuth, (req, res) => {
   const pub = process.env.VAPID_PUBLIC_KEY || '';
   const priv = process.env.VAPID_PRIVATE_KEY || '';
