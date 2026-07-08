@@ -120,12 +120,16 @@ export default function MatchCard({ match, onUpdate }) {
         {/* Score / time */}
         <div className="flex flex-col items-center min-w-[80px]">
           {finished ? (
-            <div className="flex items-center gap-1 text-xl font-black">
-              <span className="text-wc-gold">{match.home_score}</span>
-              <span className="text-white/40">:</span>
-              <span className="text-wc-gold">{match.away_score}</span>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1 text-xl font-black">
+                <span className="text-wc-gold">{match.home_score}</span>
+                <span className="text-white/40">:</span>
+                <span className="text-wc-gold">{match.away_score}</span>
+              </div>
               {!!match.ended_with_penalties && (
-                <span className="text-xs text-purple-400 ml-1">(k)</span>
+                <span className="text-xs text-purple-400 font-semibold -mt-0.5 whitespace-nowrap">
+                  🎯 karne{match.home_penalties != null ? ` ${match.home_penalties}:${match.away_penalties}` : ''}
+                </span>
               )}
             </div>
           ) : live ? (

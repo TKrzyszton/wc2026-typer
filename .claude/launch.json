@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "${workspaceFolder}/client",
       "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["index.js"],
+      "cwd": "${workspaceFolder}/server",
+      "port": 3001
     }
   ]
 }
