@@ -104,15 +104,15 @@ async function syncFinishedMatches(apiMatches, dbMatches) {
   let updated = 0;
 
   for (const m of finished) {
-    const isKnockout = m.stage !== 'GROUP_STAGE';
-    const hasExtraTime = m.score.extraTime?.home != null;
-    const hs = (isKnockout && hasExtraTime) ? m.score.extraTime.home : m.score.fullTime.home;
-    const as_ = (isKnockout && hasExtraTime) ? m.score.extraTime.away : m.score.fullTime.away;
-    if (hs === null || hs === undefined) continue;
-
     const penHome = m.score.penalties?.home ?? null;
     const penAway = m.score.penalties?.away ?? null;
     const pen = penHome !== null || penAway !== null;
+
+    // API: extraTime = goals scored DURING extra time only; fullTime includes penalty goals.
+    // Score after 120 min = fullTime - penalties (or fullTime directly when no shootout).
+    const hs = pen ? m.score.fullTime.home - penHome : m.score.fullTime.home;
+    const as_ = pen ? m.score.fullTime.away - penAway : m.score.fullTime.away;
+    if (hs === null || hs === undefined || Number.isNaN(hs)) continue;
 
     const dbRow = matchDbRow(dbMatches, m.homeTeam.name, m.awayTeam.name);
     if (!dbRow) { console.log(`  [WARN] Nie znaleziono: ${m.homeTeam.name} vs ${m.awayTeam.name}`); continue; }
