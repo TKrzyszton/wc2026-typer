@@ -10,7 +10,6 @@ import RulesPage from './pages/RulesPage';
 import SetPasswordPage from './pages/SetPasswordPage';
 import TodayPage from './pages/TodayPage';
 import NotificationsPage from './pages/NotificationsPage';
-import ThroneSplash from './components/ThroneSplash';
 
 function AdminRoute({ children }) {
   const { user } = useAuth();
@@ -29,8 +28,6 @@ export default function App() {
   }
 
   return (
-    <>
-    <ThroneSplash />
     <Routes>
       <Route path="/login"    element={user ? <Navigate to="/" /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
@@ -44,6 +41,5 @@ export default function App() {
         <Route path="admin"           element={<AdminRoute><AdminPage /></AdminRoute>} />
       </Route>
     </Routes>
-    </>
   );
 }
